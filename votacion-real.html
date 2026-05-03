@@ -9,9 +9,28 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --rose-gold: linear-gradient(135deg, #e5b2ca 0%, #d491af 50%, #b36d8e 100%); }
-        body { background: radial-gradient(circle at center, #3c096c 0%, #1a0b2e 100%); color: white; min-height: 100vh; padding: 20px; font-family: sans-serif; }
-        .metal-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(229, 178, 202, 0.2); backdrop-filter: blur(10px); border-radius: 1rem; overflow: hidden; transition: 0.4s; }
-        .btn-rose-gold { background: var(--rose-gold); color: #3e1026; font-weight: 900; width: 100%; padding: 12px; border-radius: 99px; text-transform: uppercase; font-size: 11px; cursor: pointer; border: none; }
+          body {
+            background: radial-gradient(circle at center, #2e1065 0%, #020617 100%);
+            font-family: 'Inter', sans-serif;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .neon-text {
+            color: #e5b2ca;
+            text-shadow: 0 0 10px rgba(229,178,202,0.8), 0 0 20px rgba(123,44,191,0.5);
+        }
+        .countdown-box {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(229,178,202,0.2);
+            border-radius: 20px;
+            padding: 20px;
+            min-width: 80px;
+        }
     </style>
 </head>
 <body>
