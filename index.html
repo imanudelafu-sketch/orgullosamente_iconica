@@ -60,11 +60,14 @@
             </div>
         </div>
 
-        <div class="mt-8">
-            <p class="text-white/40 text-sm uppercase tracking-[5px]">Lanzamiento oficial</p>
-            <p class="text-2xl font-bold text-pink-100">01 . JUNIO . 2026</p>
-        </div>
-    </div>
+   <div class="mt-8">
+    <p class="text-white/40 text-sm uppercase tracking-[5px]">Lanzamiento oficial</p>
+    <p class="text-2xl font-bold text-pink-100">01 . JUNIO . 2026</p>
+    <!-- NOTA DE HORARIO EN LETRAS CHIQUITAS -->
+    <p class="text-[10px] text-pink-200/40 uppercase tracking-widest mt-1">
+        * Horario de la Ciudad de México (GMT-6)
+    </p>
+</div>
 
     <!-- SECCIÓN DEL BOTÓN (Oculto por defecto con la clase "hidden") -->
     <div id="seccion-boton" class="hidden mt-8">
@@ -75,31 +78,29 @@
     </div>
 
     <script>
-        // CONFIGURA LA FECHA AQUÍ (Año, Mes-1, Día, Hora, Minutos)
-        // Ojo: En JavaScript los meses van del 0 al 11. Junio es el mes 5.
-        const launchDate = new Date(2026, 5, 1, 0, 0, 0).getTime(); 
+// CONFIGURACIÓN PARA LANZAMIENTO GLOBAL (CDMX)
+// El formato 'YYYY-MM-DDTHH:mm:ss-06:00' asegura que sea Horario CDMX
+const launchDate = new Date('2026-06-01T00:00:00-06:00').getTime(); 
 
-        const timer = setInterval(function() {
-            const now = new Date().getTime();
-            const distance = launchDate - now;
+const timer = setInterval(function() {
+    // Tomamos la hora actual del mundo (UTC) para que sea justa para todos
+    const now = new Date().getTime();
+    const distance = launchDate - now;
 
-            const d = Math.floor(distance / (1000 * 60 * 60 * 24));
-            const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+    const d = Math.floor(distance / (1000 * 60 * 60 * 24));
+    const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
 
-            document.getElementById("days").innerText = d < 10 ? '0'+d : d;
-            document.getElementById("hours").innerText = h < 10 ? '0'+h : h;
-            document.getElementById("minutes").innerText = m < 10 ? '0'+m : m;
+    document.getElementById("days").innerText = d < 10 ? '0'+d : d;
+    document.getElementById("hours").innerText = h < 10 ? '0'+h : h;
+    document.getElementById("minutes").innerText = m < 10 ? '0'+m : m;
 
-            // Cuando la cuenta llega a cero
-            if (distance < 0) {
-                clearInterval(timer);
-                // 1. Escondemos toda la zona del reloj
-                document.getElementById("seccion-reloj").classList.add("hidden");
-                // 2. Mostramos el botón brillante
-                document.getElementById("seccion-boton").classList.remove("hidden");
-            }
-        }, 1000);
+    if (distance < 0) {
+        clearInterval(timer);
+        document.getElementById("seccion-reloj").classList.add("hidden");
+        document.getElementById("seccion-boton").classList.remove("hidden");
+    }
+}, 1000);
     </script>
 </body>
 </html>
