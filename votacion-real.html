@@ -3,103 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORGULLOSAMENTE| Edición Icónica</title>
-    <!-- Librerías de diseño y base de datos -->
+    <title>Votación - Icónica Drag Virtual</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Fuentes de Google -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap" rel="stylesheet">
+    
     <style>
-        :root { --rose-gold: linear-gradient(135deg, #e5b2ca 0%, #d491af 50%, #b36d8e 100%); }
-          body {
+        body {
             background: radial-gradient(circle at center, #2e1065 0%, #020617 100%);
             font-family: 'Inter', sans-serif;
             color: white;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
         }
-        .neon-text {
-            color: #e5b2ca;
-            text-shadow: 0 0 10px rgba(229,178,202,0.8), 0 0 20px rgba(123,44,191,0.5);
-        }
-        .countdown-box {
+        .card-neon {
+            border: 1px solid rgba(229,178,202,0.2);
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(229,178,202,0.2);
-            border-radius: 20px;
-            padding: 20px;
-            min-width: 80px;
         }
     </style>
 </head>
-<body>
-    <header class="text-center my-12 flex flex-col items-center">
-        <!-- Logo de Icónica 
-        <img src="https://ctptnedwysxmlpzxujel.supabase.co/storage/v1/object/public/CONTENDIENTES_ORGULLOSAMENTE_ICONICA/Gemini_Generated_Image_76xirw76xirw76xi%20(1).png" 
-             alt="Logo Icónica" 
-             class="h-40 md:h-56 mb-6 drop-shadow-[0_0_20px_rgba(229,178,202,0.8)] transition-transform duration-500 hover:scale-105">
-        -->
-        <!-- Título -->
-         <h1 class="text-4xl md:text-6xl font-black italic uppercase tracking-tighter neon-text mb-4">
+<body class="pt-8">
+
+    <!-- TÍTULO RESPONSIVO CORREGIDO -->
+    <h1 class="text-3xl md:text-5xl font-black italic uppercase mt-4 px-2 text-center" style="color: #e5b2ca; text-shadow: 3px 3px 0px #7b2cbf;">
         ORGULLOSAMENTE ICÓNICA
     </h1>
-        <p class="text-pink-200/40 tracking-[6px] text-[10px] uppercase mt-2">EDICIÓN ICÓNICA</p>
-    </header>
+    <p class="text-center text-pink-200/60 tracking-[5px] text-sm md:text-base mb-12 uppercase">
+        Edición Icónica
+    </p>
 
-
-    <!-- Mensaje de carga / error -->
-    <div id="status" class="text-center text-pink-200/50 italic text-sm mb-10">Conectando con la base de datos...</div>
-
-    <div id="grid-votos" class="grid grid-cols-2 md:grid-cols-6 gap-6 max-w-7xl mx-auto"></div>
+    <!-- CONTENEDOR DE TARJETAS -->
+    <!-- Se adapta de 2 columnas en celular a 4 en computadora -->
+    <div id="contenedor-contendientes" class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 max-w-6xl mx-auto px-4 pb-12">
+        <!-- Las tarjetas aparecerán aquí automáticamente desde Supabase -->
+    </div>
 
     <script>
-        // TUS CREDENCIALES
-        const SB_URL = 'https://ctptnedwysxmlpzxujel.supabase.co';
-        const SB_KEY = 'sb_publishable_R6IwBFND1vd9wD-9MoID0g_AcuYWoOB';
+        // 1. TUS CREDENCIALES DE SUPABASE (¡No olvides pegarlas aquí!)
+        const SB_URL = 'PÉGALA_AQUÍ';
+        const SB_KEY = 'PÉGALA_AQUÍ';
+        
+        const client = window.supabase.createClient(SB_URL, SB_KEY);
 
+        // 2. FUNCIÓN PARA DIBUJAR A LAS CONTENDIENTES
         async function cargar() {
-            try {
-                const client = supabase.createClient(SB_URL, SB_KEY);
-                const { data, error } = await client.from('contendientes').select('*').order('id');
+            const contenedor = document.getElementById('contenedor-contendientes');
+            
+            // OJO: Asegúrate de que tu tabla se llame 'contendientes', o cambia el nombre aquí abajo
+            const { data, error } = await client.from('contendientes').select('*').order('nombre', { ascending: true });
+            
+            if (error) {
+                console.error("Error al cargar la base de datos:", error);
+                return;
+            }
+
+            contenedor.innerHTML = ''; // Limpiar antes de mostrar
+
+            data.forEach(contendiente => {
+                const card = document.createElement('div');
+                card.className = "card-neon rounded-2xl p-4 flex flex-col items-center text-center";
                 
-                if (error) throw error;
-                if (!data || data.length === 0) {
-                    document.getElementById('status').innerText = "La tabla está vacía. Ejecuta el SQL en Supabase.";
-                    return;
-                }
-
-                document.getElementById('status').style.display = 'none';
-                const grid = document.getElementById('grid-votos');
-                grid.innerHTML = data.map(p => `
-                    <div class="metal-card">
-                        <img src="${p.foto_url}" class="w-full h-48 object-cover">
-                        <div class="p-4 text-center">
-                            <h3 class="font-bold text-xs uppercase mb-3 text-white">${p.nombre}</h3>
-                            <button class="btn-rose-gold" onclick="votar(${p.id})">VOTAR</button>
-                            <p class="text-[9px] mt-2 text-pink-200/40 font-bold">PUNTOS: ${p.votos_totales || 0}</p>
-                        </div>
+                card.innerHTML = `
+                    <div class="w-full h-48 md:h-64 bg-gray-800 rounded-xl mb-4 overflow-hidden border border-pink-900/30">
+                        <img src="${contendiente.foto_url}" alt="${contendiente.nombre}" class="w-full h-full object-cover">
                     </div>
-                `).join('');
-            } catch (err) {
-                document.getElementById('status').innerText = "Error de conexión: Verifica tus llaves y la tabla en Supabase.";
-                console.error(err);
-            }
+                    <h2 class="font-bold text-sm md:text-base uppercase mb-4 h-10 flex items-center justify-center text-pink-100">${contendiente.nombre}</h2>
+                    <button onclick="votar(${contendiente.id})" class="w-full bg-[#e5b2ca] text-[#2e1065] font-black py-2 rounded-full hover:scale-105 transition-transform shadow-[0_0_15px_rgba(229,178,202,0.5)] tracking-widest text-sm md:text-base">
+                        VOTAR
+                    </button>
+                    <p class="text-xs text-pink-200/60 mt-3 tracking-widest uppercase">Puntos: <span class="font-bold text-white">${contendiente.votos}</span></p>
+                `;
+                contenedor.appendChild(card);
+            });
         }
 
-        async function votar(id) {
-            const client = supabase.createClient(SB_URL, SB_KEY);
+        // 3. FUNCIÓN QUE REGISTRA EL VOTO
+        window.votar = async function(id) {
             const hoy = new Date().toDateString();
-            if (localStorage.getItem('voto_' + hoy)) return alert("Ya votaste hoy.");
+            
+            // Revisa si ya votó hoy
+            if (localStorage.getItem('voto_' + hoy)) {
+                return alert("¡Gracias por tu apoyo! Ya votaste hoy, vuelve mañana.");
+            }
 
+            // Ejecuta la función de incrementar en Supabase
             const { error } = await client.rpc('incrementar_voto', { row_id: id });
-            if (!error) {
-                localStorage.setItem('voto_' + hoy, 'true');
-                alert("¡Voto registrado!");
-                cargar();
+            
+            if (error) {
+                alert("Hubo un error de conexión. Intenta de nuevo.");
+                console.error(error);
+            } else {
+                localStorage.setItem('voto_' + hoy, 'true'); // Guarda el candado en el celular
+                alert("¡Tu voto ha sido registrado, mucha suerte a tu favorita!");
+                cargar(); // Refresca los puntos al instante
             }
         }
 
+        // Arrancar la página cargando los datos
         cargar();
     </script>
 </body>
