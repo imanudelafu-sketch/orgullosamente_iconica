@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Icónica Drag Virtual | Inicio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: radial-gradient(circle at center, #2e1065 0%, #020617 100%);
+            font-family: 'Inter', sans-serif;
+            color: white;
+            scroll-behavior: smooth;
+        }
+        .neon-border {
+            border: 1px solid rgba(229,178,202,0.3);
+            box-shadow: 0 0 20px rgba(229,178,202,0.1);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- MENÚ DE NAVEGACIÓN -->
+    <nav class="fixed top-0 w-full z-50 glass-card py-4 px-6 flex justify-between items-center">
+        <div class="text-[#e5b2ca] font-black tracking-tighter text-xl">ICÓNICA</div>
+        <div class="space-x-6 text-xs uppercase tracking-widest font-bold">
+            <a href="#" class="hover:text-[#e5b2ca] transition-colors">Inicio</a>
+            <a href="#podcast" class="hover:text-[#e5b2ca] transition-colors">Podcast</a>
+            <a href="/proximamente.html" class="bg-[#e5b2ca] text-[#2e1065] px-4 py-2 rounded-full hover:scale-105 transition-transform">Votar</a>
+        </div>
+    </nav>
+
+    <!-- SECCIÓN HERO (BIENVENIDA) -->
+    <header class="min-height-[90vh] flex flex-col items-center justify-center text-center pt-32 pb-20 px-6">
+        <img src="URL_DE_TU_LOGO_AQUI" alt="Logo Icónica" class="h-40 md:h-56 mb-8 drop-shadow-[0_0_30px_rgba(229,178,202,0.4)]">
+        
+        <h1 class="text-4xl md:text-7xl font-black italic uppercase tracking-tighter mb-4" style="color: #e5b2ca; text-shadow: 0 0 20px rgba(229,178,202,0.5);">
+            Orgullosamente Icónica
+        </h1>
+        
+        <p class="max-w-2xl text-lg md:text-xl text-pink-100/70 mb-10 leading-relaxed font-light">
+            La plataforma de drag virtual más grande de México regresa para su temporada más espectacular. El talento, el arte y la competencia se unen aquí.
+        </p>
+
+        <a href="/proximamente.html" class="inline-block bg-transparent border-2 border-[#e5b2ca] text-[#e5b2ca] font-black text-xl px-10 py-4 rounded-full shadow-[0_0_20px_rgba(229,178,202,0.3)] hover:bg-[#e5b2ca] hover:text-[#2e1065] transition-all uppercase">
+            Prepárate para votar →
+        </a>
+    </header>
+
+    <!-- SECCIÓN PODCAST -->
+    <section id="podcast" class="max-w-5xl mx-auto px-6 py-24 border-t border-white/10">
+        <div class="grid md:grid-cols-2 gap-12 items-center">
+            <div class="glass-card p-8 rounded-3xl neon-border">
+                <img src="URL_DE_PORTADA_PODCAST" alt="Entre jochis y machuquis" class="rounded-2xl shadow-2xl mb-6">
+                <h2 class="text-3xl font-black mb-2 text-[#e5b2ca]">Entre jochis y machuquis</h2>
+                <p class="text-pink-100/60 uppercase tracking-widest text-xs mb-4">Con Manu y Gin</p>
+                <div class="flex gap-4 mt-6">
+                    <a href="#" class="bg-white/10 p-3 rounded-full hover:bg-green-500 transition-colors">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/1/19/Spotify_logo_without_text.svg" class="w-6 h-6" alt="Spotify">
+                    </a>
+                    <a href="#" class="bg-white/10 p-3 rounded-full hover:bg-red-600 transition-colors">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg" class="w-6 h-6" alt="YouTube">
+                    </a>
+                </div>
+            </div>
+            
+            <div class="space-y-6">
+                <h3 class="text-4xl font-bold italic uppercase tracking-tight">Escucha el chisme detrás del arte</h3>
+                <p class="text-lg text-white/70 leading-relaxed">
+                    Acompaña a Manu y Gin en un viaje por el estilo de vida, anécdotas y los contrastes culturales que hacen de Icónica algo único. No te pierdas los episodios semanales con las eliminadas y los secretos de producción.
+                </p>
+                <div class="pt-4">
+                    <span class="text-[#e5b2ca] font-bold">Nuevos episodios cada semana.</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="py-12 text-center border-t border-white/10">
+        <p class="text-white/30 text-xs tracking-widest uppercase mb-2">© 2026 Icónica Drag Virtual</p>
+        <p class="text-[10px] text-pink-200/20 uppercase tracking-[5px]">CDMX • MÉXICO</p>
+    </footer>
+
+</body>
+</html>
