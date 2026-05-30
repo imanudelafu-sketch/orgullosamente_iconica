@@ -4,18 +4,46 @@
     const KEY_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g';
     const cliente = supabase.createClient(URL_SUPABASE, KEY_SUPABASE);
 
-    async function registrarVenta() {
-            // ... (tus otras variables)
-            
-            const { data, error } = await cliente
-                .from('tickets')
-                .insert([{ 
-                    buyer_name: nombre, 
-                    buyer_email: email,
-                    // AGREGA ESTA LÍNEA (Asegúrate de que sea un array de números)
-                    combination: [1, 2, 3, 4, 5] 
-                }]);
-            
-            // ...
+   <select id="selectFavorita" required>
+    <option value="">Cargando participantes...</option>
+</select>
+
+<script>
+    // 1. Cargar participantes al abrir la página
+    async function cargarParticipantes() {
+        const { data } = await clienteSupabase.from('contendientes').select('id, nombre');
+        const select = document.getElementById('selectFavorita');
+        select.innerHTML = '<option value="">Selecciona una participante</option>';
+        data.forEach(p => {
+            select.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+        });
+    }
+    cargarParticipantes();
+
+    // 2. Lógica al guardar
+    document.getElementById('ventaForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const favoritaId = parseInt(document.getElementById('selectFavorita').value);
+        
+        // Generar 4 números random distintos entre 1 y 20 (ajusta según tu rango)
+        let numerosRandom = [];
+        while(numerosRandom.length < 4) {
+            let n = Math.floor(Math.random() * 20) + 1;
+            if(!numerosRandom.includes(n) && n !== favoritaId) numerosRandom.push(n);
         }
+
+        const combinacion = [favoritaId, ...numerosRandom];
+
+        const { error } = await clienteSupabase.from('tickets').insert([{
+            buyer_name: document.getElementById('nombre').value,
+            buyer_email: document.getElementById('email').value,
+            favorite_drag_id: favoritaId,
+            combination: combinacion // ¡Aquí está la magia!
+        }]);
+
+        if(error) alert("Error: " + error.message);
+        else alert("Venta registrada con la combinación: " + combinacion.join(", "));
+    });
+</script>
 </script>
