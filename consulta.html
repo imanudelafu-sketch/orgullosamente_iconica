@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Consulta tu Boleto - Icónica Drag</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .boleto { border: 2px dashed #333; padding: 15px; margin-top: 15px; border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+    <h2>Consulta tus Boletos</h2>
+    <input type="email" id="emailConsulta" placeholder="Ingresa tu email">
+    <button onclick="buscarBoletos()">Buscar</button>
+
+    <div id="resultado"></div>
+
+    <script>
+        const cliente = supabase.createClient('TU_URL', 'TU_ANON_KEY');
+
+        async function buscarBoletos() {
+            const email = document.getElementById('emailConsulta').value;
+            const resDiv = document.getElementById('resultado');
+            resDiv.innerHTML = "Buscando...";
+
+            const { data, error } = await cliente
+                .from('tickets')
+                .select('combination')
+                .eq('buyer_email', email);
+
+            if (error || !data || data.length === 0) {
+                resDiv.innerHTML = "No encontramos boletos con ese email.";
+                return;
+            }
+
+            resDiv.innerHTML = "<h3>Tus combinaciones:</h3>";
+            data.forEach(b => {
+                resDiv.innerHTML += `<div class="boleto">Números: <strong>${b.combination.join(", ")}</strong></div>`;
+            });
+        }
+    </script>
+</body>
+</html>
