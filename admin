@@ -1,0 +1,30 @@
+<!-- admin.html -->
+<form id="ventaForm">
+    <input type="text" id="nombre" placeholder="Nombre del comprador" required>
+    <input type="email" id="email" placeholder="Email del comprador" required>
+    <select id="favoritaId">
+        <!-- Aquí cargarás dinámicamente tus IDs de contendientes -->
+    </select>
+    <button type="submit">Registrar Venta Manual</button>
+</form>
+
+<script>
+document.getElementById('ventaForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const payload = {
+        name: document.getElementById('nombre').value,
+        email: document.getElementById('email').value,
+        favoriteDrag: parseInt(document.getElementById('favoritaId').value),
+        esManual: true
+    };
+
+    // Esto apunta a tu nueva API de Supabase o Edge Function
+    const response = await fetch('TU_URL_API_O_FUNCTION', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    if (response.ok) alert('Boleto registrado exitosamente');
+});
+</script>
