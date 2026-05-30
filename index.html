@@ -1,61 +1,24 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Admin - Registro de Boletos</title>
-    <!-- Cargamos la librería -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    const URL_SUPABASE = 'https://ctptnedwysxmlpzxujel.supabase.co'; 
+    const KEY_SUPABASE = 'sb_publishable_Fwwoyf8U_irJaU3fK-S-pg_krkqXxs-';
+    const cliente = supabase.createClient(URL_SUPABASE, KEY_SUPABASE);
 
-    <h2>Registrar Venta Manual</h2>
-    
-    <form id="ventaForm">
-        <input type="text" id="nombre" placeholder="Nombre del comprador" required>
-        <br><br>
-        <input type="email" id="email" placeholder="Email del comprador" required>
-        <br><br>
-        <!-- Cambiamos el botón para que use el formulario y no un onclick -->
-        <button type="submit" id="btnGuardar">Guardar Venta</button>
-    </form>
+    async function probarInsercion() {
+        console.log("Intentando inserción de prueba...");
+        const { data, error } = await cliente
+            .from('tickets')
+            .insert([{ 
+                buyer_name: 'Prueba Manu', 
+                buyer_email: 'test@test.com' 
+            }]);
 
-    <script>
-        // 1. Configuración de conexión (Renombramos la constante para evitar conflictos)
-        const URL_SUPABASE = 'https://ctptnedwysxmlpzxujel.supabase.co'; 
-        const KEY_SUPABASE = 'sb_publishable_Fwwoyf8U_irJaU3fK-S-pg_krkqXxs-';
-        
-        // Creamos la instancia con otro nombre
-        const clienteSupabase = supabase.createClient(URL_SUPABASE, KEY_SUPABASE);
-
-        // 2. Lógica del formulario
-        document.getElementById('ventaForm').addEventListener('submit', async (e) => {
-            e.preventDefault(); 
-            
-            const nombre = document.getElementById('nombre').value;
-            const email = document.getElementById('email').value;
-            const btn = document.getElementById('btnGuardar');
-            
-            btn.disabled = true;
-            btn.textContent = 'Guardando...';
-
-            // Usamos clienteSupabase en lugar de supabase
-            const { data, error } = await clienteSupabase
-                .from('tickets') 
-                .insert([
-                    { buyer_name: nombre, buyer_email: email }
-                ]);
-
-            if (error) {
-                console.error("Error al insertar:", error);
-                alert('Error: ' + error.message);
-            } else {
-                alert('¡Venta registrada con éxito!');
-                document.getElementById('ventaForm').reset();
-            }
-            
-            btn.disabled = false;
-            btn.textContent = 'Guardar Venta';
-        });
-    </script>
-</body>
-</html>
+        if (error) {
+            console.error("DETALLE DEL ERROR:", error);
+            alert("Error: " + error.message);
+        } else {
+            alert("¡ÉXITO! El dato se guardó correctamente.");
+        }
+    }
+    probarInsercion(); // Esto corre solo al abrir la página
+</script>
