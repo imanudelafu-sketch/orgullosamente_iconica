@@ -1,49 +1,88 @@
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-    const URL_SUPABASE = 'https://ctptnedwysxmlpzxujel.supabase.co'; 
-    const KEY_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g';
-    const cliente = supabase.createClient(URL_SUPABASE, KEY_SUPABASE);
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - Registro de Boletos</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+        form { max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
+    </style>
+</head>
+<body>
 
-   <select id="selectFavorita" required>
-    <option value="">Cargando participantes...</option>
-</select>
-
-<script>
-    // 1. Cargar participantes al abrir la página
-    async function cargarParticipantes() {
-        const { data } = await clienteSupabase.from('contendientes').select('id, nombre');
-        const select = document.getElementById('selectFavorita');
-        select.innerHTML = '<option value="">Selecciona una participante</option>';
-        data.forEach(p => {
-            select.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
-        });
-    }
-    cargarParticipantes();
-
-    // 2. Lógica al guardar
-    document.getElementById('ventaForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
+    <h2>Registrar Venta Manual</h2>
+    
+    <form id="ventaForm">
+        <input type="text" id="nombre" placeholder="Nombre del comprador" required>
+        <input type="email" id="email" placeholder="Email del comprador" required>
         
-        const favoritaId = parseInt(document.getElementById('selectFavorita').value);
+        <label>Selecciona tu drag favorita:</label>
+        <select id="selectFavorita" required>
+            <option value="">Cargando participantes...</option>
+        </select>
         
-        // Generar 4 números random distintos entre 1 y 20 (ajusta según tu rango)
-        let numerosRandom = [];
-        while(numerosRandom.length < 4) {
-            let n = Math.floor(Math.random() * 20) + 1;
-            if(!numerosRandom.includes(n) && n !== favoritaId) numerosRandom.push(n);
+        <button type="submit" id="btnGuardar">Guardar Venta</button>
+    </form>
+
+    <script>
+        // 1. CONFIGURACIÓN (REEMPLAZA AQUÍ)
+        const URL_SUPABASE = 'https://ctptnedwysxmlpzxujel.supabase.co'; 
+        const KEY_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g';
+        const cliente = supabase.createClient(URL_SUPABASE, KEY_SUPABASE);
+
+        // 2. CARGAR PARTICIPANTES AL INICIAR
+        async function cargarParticipantes() {
+            const { data, error } = await cliente.from('contendientes').select('id, nombre');
+            const select = document.getElementById('selectFavorita');
+            
+            if (error) {
+                console.error("Error cargando dragas:", error);
+                select.innerHTML = '<option>Error al cargar</option>';
+                return;
+            }
+
+            select.innerHTML = '<option value="">Elige una opción</option>';
+            data.forEach(p => {
+                select.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+            });
         }
+        cargarParticipantes();
 
-        const combinacion = [favoritaId, ...numerosRandom];
+        // 3. REGISTRAR VENTA Y COMBINACIÓN RANDOM
+        document.getElementById('ventaForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btnGuardar');
+            btn.disabled = true;
+            btn.textContent = 'Guardando...';
 
-        const { error } = await clienteSupabase.from('tickets').insert([{
-            buyer_name: document.getElementById('nombre').value,
-            buyer_email: document.getElementById('email').value,
-            favorite_drag_id: favoritaId,
-            combination: combinacion // ¡Aquí está la magia!
-        }]);
+            const favoritaId = parseInt(document.getElementById('selectFavorita').value);
+            
+            // Generar 4 números random (del 1 al 20, sin repetir)
+            let randoms = [];
+            while(randoms.length < 4) {
+                let n = Math.floor(Math.random() * 20) + 1;
+                if(!randoms.includes(n) && n !== favoritaId) randoms.push(n);
+            }
 
-        if(error) alert("Error: " + error.message);
-        else alert("Venta registrada con la combinación: " + combinacion.join(", "));
-    });
-</script>
+            const { error } = await cliente.from('tickets').insert([{
+                buyer_name: document.getElementById('nombre').value,
+                buyer_email: document.getElementById('email').value,
+                favorite_drag_id: favoritaId,
+                combination: [favoritaId, ...randoms]
+            }]);
 
+            if(error) {
+                alert("Error: " + error.message);
+                btn.disabled = false;
+                btn.textContent = 'Guardar Venta';
+            } else {
+                alert("¡Venta registrada! Combinación: " + [favoritaId, ...randoms].join(", "));
+                document.getElementById('ventaForm').reset();
+                btn.disabled = false;
+                btn.textContent = 'Guardar Venta';
+            }
+        });
+    </script>
+</body>
+</html>
