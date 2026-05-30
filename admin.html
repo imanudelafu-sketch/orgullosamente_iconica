@@ -1,33 +1,26 @@
-<!-- 1. Cargar la librería de Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - Registro de Boletos</title>
+    <!-- Cargamos la librería de Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
 
-<script>
-  // 2. Configura tu conexión
+    <h2>Registrar Venta Manual</h2>
+    
+    <form id="ventaForm">
+        <input type="text" id="nombre" placeholder="Nombre del comprador" required>
+        <br><br>
+        <input type="email" id="email" placeholder="Email del comprador" required>
+        <br><br>
+        <button type="submit" id="btnGuardar">Guardar Venta</button>
+    </form>
+
+    <script>
+        // 1. Configuración de conexión
   const SUPABASE_URL = 'https://ctptnedwysxmlpzxujel.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzc2Nzk4OCwiZXhwIjoyMDkzMzQzOTg4fQ.2Z5K2XViGOWd74I0pGKVoBrdqqWNgQyCJVolJQ7QmkM'; // Usa la anon key aquí
   
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  // 3. Función para guardar la venta
-  async function registrarVenta() {
-    const nombre = document.getElementById('nombre').value;
-    const email = document.getElementById('email').value;
-
-    const { data, error } = await supabase
-      .from('tickets') // Asegúrate que este sea el nombre exacto de tu tabla
-      .insert([
-        { buyer_name: nombre, buyer_email: email }
-      ]);
-
-    if (error) {
-      alert('Error al guardar: ' + error.message);
-    } else {
-      alert('¡Venta registrada con éxito!');
-    }
-  }
-</script>
-
-<!-- 4. Tu formulario sencillo -->
-<input type="text" id="nombre" placeholder="Nombre del comprador">
-<input type="email" id="email" placeholder="Email">
-<button onclick="registrarVenta()">Guardar Venta</button>
+ 
