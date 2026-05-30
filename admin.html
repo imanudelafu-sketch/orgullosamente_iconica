@@ -4,21 +4,18 @@
     const KEY_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g';
     const cliente = supabase.createClient(URL_SUPABASE, KEY_SUPABASE);
 
-    async function probarInsercion() {
-        console.log("Intentando inserción de prueba...");
-        const { data, error } = await cliente
-            .from('tickets')
-            .insert([{ 
-                buyer_name: 'Prueba Manu', 
-                buyer_email: 'test@test.com' 
-            }]);
-
-        if (error) {
-            console.error("DETALLE DEL ERROR:", error);
-            alert("Error: " + error.message);
-        } else {
-            alert("¡ÉXITO! El dato se guardó correctamente.");
+    async function registrarVenta() {
+            // ... (tus otras variables)
+            
+            const { data, error } = await cliente
+                .from('tickets')
+                .insert([{ 
+                    buyer_name: nombre, 
+                    buyer_email: email,
+                    // AGREGA ESTA LÍNEA (Asegúrate de que sea un array de números)
+                    combination: [1, 2, 3, 4, 5] 
+                }]);
+            
+            // ...
         }
-    }
-    probarInsercion(); // Esto corre solo al abrir la página
 </script>
