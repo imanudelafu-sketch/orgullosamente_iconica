@@ -2,86 +2,65 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Admin - Registro de Boletos</title>
+    <title>Admin - Registro Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
-        form { max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
-    </style>
 </head>
 <body>
-
-    <h2>Registrar Venta Manual</h2>
-    
+    <h2>Registrar Venta (Sistema Pro)</h2>
     <form id="ventaForm">
-        <input type="text" id="nombre" placeholder="Nombre del comprador" required>
-        <input type="email" id="email" placeholder="Email del comprador" required>
-        
-        <label>Selecciona tu drag favorita:</label>
-        <select id="selectFavorita" required>
-            <option value="">Cargando participantes...</option>
-        </select>
-        
+        <input type="text" id="nombre" placeholder="Nombre" required>
+        <input type="email" id="email" placeholder="Email" required>
+        <select id="selectFavorita" required><option>Cargando...</option></select>
         <button type="submit" id="btnGuardar">Guardar Venta</button>
     </form>
 
     <script>
-        // 1. CONFIGURACIÓN (REEMPLAZA AQUÍ)
-        const URL_SUPABASE = 'https://ctptnedwysxmlpzxujel.supabase.co'; 
-        const KEY_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g';
-        const cliente = supabase.createClient(URL_SUPABASE, KEY_SUPABASE);
+        const cliente = supabase.createClient('TU_URL', 'TU_ANON_KEY');
 
-        // 2. CARGAR PARTICIPANTES AL INICIAR
+        // Cargar participantes
         async function cargarParticipantes() {
-            const { data, error } = await cliente.from('contendientes').select('id, nombre');
+            const { data } = await cliente.from('contendientes').select('id, nombre');
             const select = document.getElementById('selectFavorita');
-            
-            if (error) {
-                console.error("Error cargando dragas:", error);
-                select.innerHTML = '<option>Error al cargar</option>';
-                return;
-            }
-
-            select.innerHTML = '<option value="">Elige una opción</option>';
-            data.forEach(p => {
-                select.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
-            });
+            select.innerHTML = data.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
         }
         cargarParticipantes();
 
-        // 3. REGISTRAR VENTA Y COMBINACIÓN RANDOM
+        // Guardar con lógica de validación única
         document.getElementById('ventaForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnGuardar');
             btn.disabled = true;
-            btn.textContent = 'Guardando...';
+            btn.textContent = 'Procesando...';
 
             const favoritaId = parseInt(document.getElementById('selectFavorita').value);
-            
-            // Generar 4 números random (del 1 al 20, sin repetir)
-            let randoms = [];
-            while(randoms.length < 4) {
-                let n = Math.floor(Math.random() * 20) + 1;
-                if(!randoms.includes(n) && n !== favoritaId) randoms.push(n);
+            let esUnico = false;
+            let final, sorted;
+
+            while (!esUnico) {
+                let randoms = [];
+                while(randoms.length < 4) {
+                    let n = Math.floor(Math.random() * 20) + 1;
+                    if(!randoms.includes(n) && n !== favoritaId) randoms.push(n);
+                }
+                final = [favoritaId, ...randoms];
+                sorted = [...final].sort((a, b) => a - b);
+
+                const { data } = await cliente.from('tickets').select('combination_sorted').eq('combination_sorted', sorted);
+                if (!data || data.length === 0) esUnico = true;
             }
 
             const { error } = await cliente.from('tickets').insert([{
                 buyer_name: document.getElementById('nombre').value,
                 buyer_email: document.getElementById('email').value,
                 favorite_drag_id: favoritaId,
-                combination: [favoritaId, ...randoms]
+                combination: final,
+                combination_sorted: sorted
             }]);
 
-            if(error) {
-                alert("Error: " + error.message);
-                btn.disabled = false;
-                btn.textContent = 'Guardar Venta';
-            } else {
-                alert("¡Venta registrada! Combinación: " + [favoritaId, ...randoms].join(", "));
-                document.getElementById('ventaForm').reset();
-                btn.disabled = false;
-                btn.textContent = 'Guardar Venta';
-            }
+            if(error) { alert("Error: " + error.message); }
+            else { alert("¡Venta registrada con éxito!"); }
+            
+            btn.disabled = false; btn.textContent = 'Guardar Venta';
         });
     </script>
 </body>
