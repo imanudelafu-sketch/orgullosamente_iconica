@@ -1,25 +1,33 @@
-<form id="adminForm">
-    <input type="text" id="nombre" placeholder="Nombre" required>
-    <input type="email" id="email" placeholder="Email" required>
-    <select id="favoritaId">
-        <option value="1">Draga 1</option>
-        </select>
-    <button type="submit">Registrar Venta</button>
-</form>
+<!-- 1. Cargar la librería de Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-document.getElementById('adminForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const response = await fetch('URL_DE_TU_FUNCTION_AQUI', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            name: document.getElementById('nombre').value,
-            email: document.getElementById('email').value,
-            favoriteDrag: parseInt(document.getElementById('favoritaId').value)
-        })
-    });
-    
-    if (response.ok) alert('¡Venta registrada en la base de datos!');
-});
+  // 2. Configura tu conexión
+  const SUPABASE_URL = 'https://ctptnedwysxmlpzxujel.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzc2Nzk4OCwiZXhwIjoyMDkzMzQzOTg4fQ.2Z5K2XViGOWd74I0pGKVoBrdqqWNgQyCJVolJQ7QmkM'; // Usa la anon key aquí
+  
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // 3. Función para guardar la venta
+  async function registrarVenta() {
+    const nombre = document.getElementById('nombre').value;
+    const email = document.getElementById('email').value;
+
+    const { data, error } = await supabase
+      .from('tickets') // Asegúrate que este sea el nombre exacto de tu tabla
+      .insert([
+        { buyer_name: nombre, buyer_email: email }
+      ]);
+
+    if (error) {
+      alert('Error al guardar: ' + error.message);
+    } else {
+      alert('¡Venta registrada con éxito!');
+    }
+  }
 </script>
+
+<!-- 4. Tu formulario sencillo -->
+<input type="text" id="nombre" placeholder="Nombre del comprador">
+<input type="email" id="email" placeholder="Email">
+<button onclick="registrarVenta()">Guardar Venta</button>
