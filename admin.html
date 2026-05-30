@@ -1,26 +1,24 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Admin - Registro de Boletos</title>
-    <!-- Cargamos la librería de Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    const URL_SUPABASE = 'https://ctptnedwysxmlpzxujel.supabase.co'; 
+    const KEY_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g';
+    const cliente = supabase.createClient(URL_SUPABASE, KEY_SUPABASE);
 
-    <h2>Registrar Venta Manual</h2>
-    
-    <form id="ventaForm">
-        <input type="text" id="nombre" placeholder="Nombre del comprador" required>
-        <br><br>
-        <input type="email" id="email" placeholder="Email del comprador" required>
-        <br><br>
-        <button type="submit" id="btnGuardar">Guardar Venta</button>
-    </form>
+    async function probarInsercion() {
+        console.log("Intentando inserción de prueba...");
+        const { data, error } = await cliente
+            .from('tickets')
+            .insert([{ 
+                buyer_name: 'Prueba Manu', 
+                buyer_email: 'test@test.com' 
+            }]);
 
-    <script>
-        // 1. Configuración de conexión
-  const SUPABASE_URL = 'https://ctptnedwysxmlpzxujel.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzc2Nzk4OCwiZXhwIjoyMDkzMzQzOTg4fQ.2Z5K2XViGOWd74I0pGKVoBrdqqWNgQyCJVolJQ7QmkM'; // Usa la anon key aquí
-  
- 
+        if (error) {
+            console.error("DETALLE DEL ERROR:", error);
+            alert("Error: " + error.message);
+        } else {
+            alert("¡ÉXITO! El dato se guardó correctamente.");
+        }
+    }
+    probarInsercion(); // Esto corre solo al abrir la página
+</script>
