@@ -2,16 +2,13 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Icónica Drag Virtual</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f0f0f; color: #e0e0e0; padding: 40px; display: flex; justify-content: center; }
-        .container { background: #1a1a1a; padding: 30px; border-radius: 15px; width: 100%; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        h2 { color: #ff00ff; margin-bottom: 25px; }
-        input, select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #333; background: #252525; color: white; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; background: #ff00ff; border: none; color: white; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 10px; transition: 0.3s; }
-        button:hover { background: #d400d4; }
+        body { font-family: sans-serif; background: #0f0f0f; color: #fff; padding: 20px; display: flex; justify-content: center; }
+        .container { background: #1a1a1a; padding: 30px; border-radius: 12px; width: 100%; max-width: 450px; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 6px; border: 1px solid #444; background: #222; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #ff00ff; border: none; color: white; font-weight: bold; border-radius: 6px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -23,21 +20,17 @@
     
     <select id="dragaSelect">
         <option value="">Selecciona una Draga...</option>
-        </select>
+    </select>
     
     <button onclick="registrarVenta()">Guardar Venta</button>
 </div>
 
 <script>
-    const supabase = supabase.createClient('TU_URL', 'TU_ANON_KEY');
+    const supabase = supabase.createClient('https://ctptnedwysxmlpzxujel.supabase.co', 'sb_publishable_Fwwoyf8U_irJaU3fK-S-pg_krkqXxs-');
 
-    // 1. Cargar las dragas al abrir la página
+    // Cargar nombres al select
     async function cargarContendientes() {
-        const { data, error } = await supabase
-            .from('contendientes')
-            .select('id, nombre')
-            .eq('active', true);
-
+        const { data } = await supabase.from('contendientes').select('id, nombre').eq('active', true);
         if (data) {
             const select = document.getElementById('dragaSelect');
             data.forEach(d => {
@@ -49,15 +42,14 @@
         }
     }
 
-    // 2. Ejecutar la venta
     async function registrarVenta() {
         const nombre = document.getElementById('nombreCliente').value;
         const email = document.getElementById('emailCliente').value;
         const dragaId = parseInt(document.getElementById('dragaSelect').value);
 
-        if (!nombre || !email || !dragaId) return alert("Por favor llena todos los campos");
+        if (!nombre || !email || !dragaId) return alert("Completa todos los campos");
 
-        // A. Buscar un boleto disponible que contenga esa draga
+        // 1. Buscar boleto disponible que contenga la draga elegida
         const { data: boleto, error: errFetch } = await supabase
             .from('combinaciones_disponibles')
             .select('*')
@@ -68,21 +60,23 @@
 
         if (errFetch || !boleto) return alert("¡No hay boletos disponibles para esta draga!");
 
-        // B. Asignar el boleto
+        // 2. Asignar en inventario
         await supabase.from('combinaciones_disponibles').update({ asignado: true }).eq('id', boleto.id);
 
-        // C. Guardar en tickets
+        // 3. Insertar ticket vinculando el ID del boleto (combination_id)
         const { error: errInsert } = await supabase.from('tickets').insert([{
             buyer_name: nombre,
             buyer_email: email,
             favorite_drag_id: dragaId,
-            combination_sorted: boleto.combination_sorted,
+            combination_id: boleto.id,            // Vinculamos al ID del pool
+            combination: boleto.combination_sorted, 
+            combination_sorted: boleto.combination_sorted, 
             is_paid: true
         }]);
 
-        if (errInsert) return alert("Error al registrar el ticket");
+        if (errInsert) return alert("Error al registrar: " + errInsert.message);
 
-        alert("¡Venta exitosa! Boleto: " + boleto.combination_sorted.join(", "));
+        alert("¡Venta exitosa! Combinación: " + boleto.combination_sorted.join(", "));
     }
 
     cargarContendientes();
