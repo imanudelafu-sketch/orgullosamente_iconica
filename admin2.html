@@ -1,16 +1,12 @@
-<select id="dragaSelect">
-    <option value="">Cargando dragas...</option>
-</select>
-
 <script>
-    // 1. Configura tu cliente (asegúrate de tener tu URL y KEY reales aquí)
-    // TUS CREDENCIALES
-        
-    const supabase = supabase.createClient('https://ctptnedwysxmlpzxujel.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g');
+    // 1. Inicializamos el cliente con un nombre distinto (supabaseClient)
+    // para evitar conflictos con la librería cargada vía CDN.
+    const supabaseClient = supabase.createClient('https://ctptnedwysxmlpzxujel.supabase.co', 'sb_publishable_Fwwoyf8U_irJaU3fK-S-pg_krkqXxs-');
 
     async function cargarContendientes() {
         try {
-            const { data, error } = await supabase
+            // 2. Usamos supabaseClient aquí dentro
+            const { data, error } = await supabaseClient
                 .from('contendientes')
                 .select('id, nombre')
                 .eq('active', true);
@@ -26,12 +22,11 @@
                 opt.textContent = d.nombre;
                 select.appendChild(opt);
             });
-            console.log("Drogas cargadas correctamente:", data);
         } catch (err) {
             console.error("Error al cargar las dragas:", err.message);
         }
     }
 
-    // 2. Ejecutar la carga
+    // 3. Ejecutar la carga
     cargarContendientes();
 </script>
