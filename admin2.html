@@ -4,7 +4,10 @@
 
 <script>
     // 1. Configura tu cliente (asegúrate de tener tu URL y KEY reales aquí)
-    const supabase = supabase.createClient('TU_URL', 'TU_ANON_KEY');
+    // TUS CREDENCIALES
+        const SB_URL = 'https://ctptnedwysxmlpzxujel.supabase.co';
+        const SB_KEY = 'sb_publishable_R6IwBFND1vd9wD-9MoID0g_AcuYWoOB';
+    const supabase = supabase.createClient(SB_URL, 'SB_KEY);
 
     async function cargarContendientes() {
         try {
