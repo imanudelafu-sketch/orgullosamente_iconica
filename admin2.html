@@ -1,32 +1,47 @@
-<script>
-    // 1. Inicializamos el cliente con un nombre distinto (supabaseClient)
-    // para evitar conflictos con la librería cargada vía CDN.
-    const supabaseClient = supabase.createClient('https://ctptnedwysxmlpzxujel.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g');
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - Icónica</title>
+    <!-- 1. Carga primero la librería de Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
 
-    async function cargarContendientes() {
-        try {
-            // 2. Usamos supabaseClient aquí dentro
-            const { data, error } = await supabaseClient
-                .from('contendientes')
-                .select('id, nombre')
-                .eq('active', true);
+    <select id="dragaSelect">
+        <option value="">Cargando dragas...</option>
+    </select>
 
-            if (error) throw error;
+    <script>
+        // 2. Inicializa usando la variable global que proporciona la librería
+        // Asegúrate de poner aquí tus credenciales reales de Supabase
+        const supabaseClient = supabase.createClient('https://ctptnedwysxmlpzxujel.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g');
 
-            const select = document.getElementById('dragaSelect');
-            select.innerHTML = '<option value="">Selecciona una Draga...</option>';
+        async function cargarContendientes() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('contendientes')
+                    .select('id, nombre')
+                    .eq('active', true);
 
-            data.forEach(d => {
-                let opt = document.createElement('option');
-                opt.value = d.id;
-                opt.textContent = d.nombre;
-                select.appendChild(opt);
-            });
-        } catch (err) {
-            console.error("Error al cargar las dragas:", err.message);
+                if (error) throw error;
+
+                const select = document.getElementById('dragaSelect');
+                select.innerHTML = '<option value="">Selecciona una Draga...</option>';
+
+                data.forEach(d => {
+                    let opt = document.createElement('option');
+                    opt.value = d.id;
+                    opt.textContent = d.nombre;
+                    select.appendChild(opt);
+                });
+            } catch (err) {
+                console.error("Error al cargar:", err);
+            }
         }
-    }
 
-    // 3. Ejecutar la carga
-    cargarContendientes();
-</script>
+        // 3. Ejecuta la función
+        cargarContendientes();
+    </script>
+</body>
+</html>
