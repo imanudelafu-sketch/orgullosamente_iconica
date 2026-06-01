@@ -2,46 +2,89 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Admin - Icónica</title>
-    <!-- 1. Carga primero la librería de Supabase -->
+    <title>Venta de Boletos - Icónica</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: sans-serif; background: #0f0f0f; color: #fff; padding: 20px; }
+        .card { background: #1a1a1a; padding: 25px; border-radius: 12px; max-width: 400px; margin: auto; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 6px; border: 1px solid #444; background: #222; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #ff00ff; border: none; color: white; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    </style>
 </head>
 <body>
 
+<div class="card">
+    <h2>Registrar Venta</h2>
+    <input type="text" id="nombreCliente" placeholder="Nombre completo">
+    <input type="email" id="emailCliente" placeholder="Correo electrónico">
+    
     <select id="dragaSelect">
         <option value="">Cargando dragas...</option>
     </select>
+    
+    <button onclick="procesarVenta()">Confirmar Compra</button>
+</div>
 
-    <script>
-        // 2. Inicializa usando la variable global que proporciona la librería
-        // Asegúrate de poner aquí tus credenciales reales de Supabase
-        const supabaseClient = supabase.createClient('https://ctptnedwysxmlpzxujel.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g');
-
-        async function cargarContendientes() {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('contendientes')
-                    .select('id, nombre')
-                    .eq('active', true);
-
-                if (error) throw error;
-
-                const select = document.getElementById('dragaSelect');
-                select.innerHTML = '<option value="">Selecciona una Draga...</option>';
-
-                data.forEach(d => {
-                    let opt = document.createElement('option');
-                    opt.value = d.id;
-                    opt.textContent = d.nombre;
-                    select.appendChild(opt);
-                });
-            } catch (err) {
-                console.error("Error al cargar:", err);
-            }
+<script>
+    const supabaseClient = supabase.createClient('https://ctptnedwysxmlpzxujel.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g');
+    // 1. Cargar las dragas al iniciar
+    async function cargarContendientes() {
+        const { data } = await supabase.from('contendientes').select('id, nombre').eq('active', true);
+        const select = document.getElementById('dragaSelect');
+        select.innerHTML = '<option value="">Selecciona una Draga...</option>';
+        if (data) {
+            data.forEach(d => {
+                let opt = document.createElement('option');
+                opt.value = d.id;
+                opt.textContent = d.nombre;
+                select.appendChild(opt);
+            });
         }
+    }
 
-        // 3. Ejecuta la función
-        cargarContendientes();
-    </script>
+    // 2. Lógica de venta
+    async function procesarVenta() {
+        const nombre = document.getElementById('nombreCliente').value;
+        const email = document.getElementById('emailCliente').value;
+        const dragaId = parseInt(document.getElementById('dragaSelect').value);
+
+        if (!nombre || !email || !dragaId) return alert("Por favor completa todos los campos.");
+
+        // A. Buscar boleto disponible que contenga esa draga (de 6 números)
+        const { data: boleto, error: errFetch } = await supabase
+            .from('combinaciones_disponibles')
+            .select('*')
+            .eq('asignado', false)
+            .contains('combination_sorted', [dragaId])
+            .limit(1)
+            .single();
+
+        if (errFetch || !boleto) return alert("¡No hay boletos disponibles para esta draga!");
+
+        // B. Asignar boleto en el pool
+        await supabase.from('combinaciones_disponibles')
+            .update({ asignado: true })
+            .eq('id', boleto.id);
+
+        // C. Crear el registro en 'tickets'
+        const { error: errInsert } = await supabase.from('tickets').insert([{
+            buyer_name: nombre,
+            buyer_email: email,
+            favorite_drag_id: dragaId,
+            combination_id: boleto.id,
+            combination: boleto.combination_sorted,
+            combination_sorted: boleto.combination_sorted,
+            is_paid: true
+        }]);
+
+        if (errInsert) return alert("Error al registrar: " + errInsert.message);
+
+        alert("¡Venta exitosa! Folio: " + boleto.id + " | Combo: " + boleto.combination_sorted.join(", "));
+    }
+
+    cargarContendientes();
+</script>
 </body>
 </html>
+
+        
