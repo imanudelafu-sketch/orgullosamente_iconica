@@ -2,66 +2,90 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Admin - Registro Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Icónica Drag Virtual</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f0f0f; color: #e0e0e0; padding: 40px; display: flex; justify-content: center; }
+        .container { background: #1a1a1a; padding: 30px; border-radius: 15px; width: 100%; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h2 { color: #ff00ff; margin-bottom: 25px; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #333; background: #252525; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #ff00ff; border: none; color: white; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        button:hover { background: #d400d4; }
+    </style>
 </head>
 <body>
+
+<div class="container">
     <h2>Registrar Venta (Sistema Pro)</h2>
-    <form id="ventaForm">
-        <input type="text" id="nombre" placeholder="Nombre" required>
-        <input type="email" id="email" placeholder="Email" required>
-        <select id="selectFavorita" required><option>Cargando...</option></select>
-        <button type="submit" id="btnGuardar">Guardar Venta</button>
-    </form>
+    <input type="text" id="nombreCliente" placeholder="Nombre del Cliente">
+    <input type="email" id="emailCliente" placeholder="Email del Cliente">
+    
+    <select id="dragaSelect">
+        <option value="">Selecciona una Draga...</option>
+        </select>
+    
+    <button onclick="registrarVenta()">Guardar Venta</button>
+</div>
 
-    <script>
-        const cliente = supabase.createClient('https://ctptnedwysxmlpzxujel.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g');
+<script>
+    const supabase = supabase.createClient('TU_URL', 'TU_ANON_KEY');
 
-        // Cargar participantes
-        async function cargarParticipantes() {
-            const { data } = await cliente.from('contendientes').select('id, nombre');
-            const select = document.getElementById('selectFavorita');
-            select.innerHTML = data.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+    // 1. Cargar las dragas al abrir la página
+    async function cargarContendientes() {
+        const { data, error } = await supabase
+            .from('contendientes')
+            .select('id, nombre')
+            .eq('active', true);
+
+        if (data) {
+            const select = document.getElementById('dragaSelect');
+            data.forEach(d => {
+                let opt = document.createElement('option');
+                opt.value = d.id;
+                opt.innerHTML = d.nombre;
+                select.appendChild(opt);
+            });
         }
-        cargarParticipantes();
+    }
 
-        // Guardar con lógica de validación única
-        document.getElementById('ventaForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('btnGuardar');
-            btn.disabled = true;
-            btn.textContent = 'Procesando...';
+    // 2. Ejecutar la venta
+    async function registrarVenta() {
+        const nombre = document.getElementById('nombreCliente').value;
+        const email = document.getElementById('emailCliente').value;
+        const dragaId = parseInt(document.getElementById('dragaSelect').value);
 
-            const favoritaId = parseInt(document.getElementById('selectFavorita').value);
-            let esUnico = false;
-            let final, sorted;
+        if (!nombre || !email || !dragaId) return alert("Por favor llena todos los campos");
 
-            while (!esUnico) {
-                let randoms = [];
-                while(randoms.length < 4) {
-                    let n = Math.floor(Math.random() * 20) + 1;
-                    if(!randoms.includes(n) && n !== favoritaId) randoms.push(n);
-                }
-                final = [favoritaId, ...randoms];
-                sorted = [...final].sort((a, b) => a - b);
+        // A. Buscar un boleto disponible que contenga esa draga
+        const { data: boleto, error: errFetch } = await supabase
+            .from('combinaciones_disponibles')
+            .select('*')
+            .eq('asignado', false)
+            .contains('combination_sorted', [dragaId])
+            .limit(1)
+            .single();
 
-                const { data } = await cliente.from('tickets').select('combination_sorted').eq('combination_sorted', sorted);
-                if (!data || data.length === 0) esUnico = true;
-            }
+        if (errFetch || !boleto) return alert("¡No hay boletos disponibles para esta draga!");
 
-            const { error } = await cliente.from('tickets').insert([{
-                buyer_name: document.getElementById('nombre').value,
-                buyer_email: document.getElementById('email').value,
-                favorite_drag_id: favoritaId,
-                combination: final,
-                combination_sorted: sorted
-            }]);
+        // B. Asignar el boleto
+        await supabase.from('combinaciones_disponibles').update({ asignado: true }).eq('id', boleto.id);
 
-            if(error) { alert("Error: " + error.message); }
-            else { alert("¡Venta registrada con éxito!"); }
-            
-            btn.disabled = false; btn.textContent = 'Guardar Venta';
-        });
-    </script>
+        // C. Guardar en tickets
+        const { error: errInsert } = await supabase.from('tickets').insert([{
+            buyer_name: nombre,
+            buyer_email: email,
+            favorite_drag_id: dragaId,
+            combination_sorted: boleto.combination_sorted,
+            is_paid: true
+        }]);
+
+        if (errInsert) return alert("Error al registrar el ticket");
+
+        alert("¡Venta exitosa! Boleto: " + boleto.combination_sorted.join(", "));
+    }
+
+    cargarContendientes();
+</script>
 </body>
 </html>
