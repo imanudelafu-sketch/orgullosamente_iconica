@@ -2,21 +2,24 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Icónica Drag Virtual</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: sans-serif; background: #0f0f0f; color: #fff; padding: 20px; display: flex; justify-content: center; }
-        .container { background: #1a1a1a; padding: 30px; border-radius: 12px; width: 100%; max-width: 450px; }
-        input, select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 6px; border: 1px solid #444; background: #222; color: white; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; background: #ff00ff; border: none; color: white; font-weight: bold; border-radius: 6px; cursor: pointer; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: #fff; display: flex; justify-content: center; padding: 40px; }
+        .container { background: #1a1a1a; padding: 30px; border-radius: 15px; width: 100%; max-width: 450px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        h2 { color: #ff00ff; text-align: center; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #ff00ff; border: none; color: white; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #d400d4; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Registrar Venta (Sistema Pro)</h2>
+    <h2>Registrar Venta</h2>
     <input type="text" id="nombreCliente" placeholder="Nombre del Cliente">
-    <input type="email" id="emailCliente" placeholder="Email del Cliente">
+    <input type="email" id="emailCliente" placeholder="Correo electrónico">
     
     <select id="dragaSelect">
         <option value="">Cargando dragas...</option>
@@ -26,41 +29,43 @@
 </div>
 
 <script>
-    // 1. Inicialización correcta: guardamos el cliente en la constante 'supabase'
-    const supabase = window.supabase.createClient('https://ctptnedwysxmlpzxujel.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g');
+    // 1. Inicialización con 'sb' para evitar conflictos
+    const sb = supabase.createClient('https://ctptnedwysxmlpzxujel.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g');
 
-    // 2. Cargar nombres al select
+    // 2. Función para cargar el menú desplegable
     async function cargarContendientes() {
-        const { data, error } = await supabase
-            .from('contendientes')
-            .select('id, nombre')
-            .eq('active', true);
+        try {
+            const { data, error } = await sb
+                .from('contendientes')
+                .select('id, nombre')
+                .eq('active', true);
 
-        if (error) {
-            console.error("Error al cargar:", error);
-            return;
+            if (error) throw error;
+
+            const select = document.getElementById('dragaSelect');
+            select.innerHTML = '<option value="">Selecciona una Draga...</option>';
+            
+            data.forEach(d => {
+                let opt = document.createElement('option');
+                opt.value = d.id;
+                opt.textContent = d.nombre;
+                select.appendChild(opt);
+            });
+        } catch (err) {
+            console.error("Error al cargar:", err.message);
         }
-
-        const select = document.getElementById('dragaSelect');
-        select.innerHTML = '<option value="">Selecciona una Draga...</option>';
-        data.forEach(d => {
-            let opt = document.createElement('option');
-            opt.value = d.id;
-            opt.textContent = d.nombre;
-            select.appendChild(opt);
-        });
     }
 
-    // 3. Ejecutar la venta
+    // 3. Función de procesamiento de venta
     async function procesarVenta() {
         const nombre = document.getElementById('nombreCliente').value;
         const email = document.getElementById('emailCliente').value;
         const dragaId = parseInt(document.getElementById('dragaSelect').value);
 
-        if (!nombre || !email || !dragaId) return alert("Completa todos los campos");
+        if (!nombre || !email || !dragaId) return alert("Por favor, completa todos los campos.");
 
-        // A. Buscar boleto disponible que contenga la draga elegida
-        const { data: boleto, error: errFetch } = await supabase
+        // A. Buscar el boleto que contiene el ID de la draga
+        const { data: boleto, error: errFetch } = await sb
             .from('combinaciones_disponibles')
             .select('*')
             .eq('asignado', false)
@@ -68,13 +73,13 @@
             .limit(1)
             .single();
 
-        if (errFetch || !boleto) return alert("¡No hay boletos disponibles para esta draga!");
+        if (errFetch || !boleto) return alert("¡No quedan boletos disponibles para esta draga!");
 
-        // B. Asignar en inventario
-        await supabase.from('combinaciones_disponibles').update({ asignado: true }).eq('id', boleto.id);
+        // B. Marcar boleto como asignado
+        await sb.from('combinaciones_disponibles').update({ asignado: true }).eq('id', boleto.id);
 
-        // C. Insertar ticket
-        const { error: errInsert } = await supabase.from('tickets').insert([{
+        // C. Crear el ticket con todos los campos requeridos
+        const { error: errInsert } = await sb.from('tickets').insert([{
             buyer_name: nombre,
             buyer_email: email,
             favorite_drag_id: dragaId,
@@ -84,11 +89,12 @@
             is_paid: true
         }]);
 
-        if (errInsert) return alert("Error al registrar: " + errInsert.message);
+        if (errInsert) return alert("Error al registrar el ticket: " + errInsert.message);
 
-        alert("¡Venta exitosa! Folio: " + boleto.id + " | Combo: " + boleto.combination_sorted.join(", "));
+        alert("¡Venta exitosa! Folio: " + boleto.id + "\nCombinación: " + boleto.combination_sorted.join(", "));
     }
 
+    // Iniciar carga al abrir
     cargarContendientes();
 </script>
 </body>
