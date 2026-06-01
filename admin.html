@@ -29,18 +29,37 @@
     const supabase = supabase.createClient('https://ctptnedwysxmlpzxujel.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g');
 
     // Cargar nombres al select
-    async function cargarContendientes() {
-        const { data } = await supabase.from('contendientes').select('id, nombre').eq('active', true);
-        if (data) {
-            const select = document.getElementById('dragaSelect');
-            data.forEach(d => {
-                let opt = document.createElement('option');
-                opt.value = d.id;
-                opt.innerHTML = d.nombre;
-                select.appendChild(opt);
-            });
-        }
+async function cargarContendientes() {
+    // 1. Consultamos la tabla contendientes
+    const { data, error } = await supabase
+        .from('contendientes')
+        .select('id, nombre')
+        .eq('active', true); // Solo las activas
+
+    if (error) {
+        console.error("Error al cargar:", error);
+        alert("No pude cargar las dragas, revisa la consola.");
+        return;
     }
+
+    if (data) {
+        const select = document.getElementById('dragaSelect');
+        
+        // Limpiamos opciones previas por si acaso
+        select.innerHTML = '<option value="">Selecciona una Draga...</option>';
+        
+        // Llenamos el select
+        data.forEach(d => {
+            let opt = document.createElement('option');
+            opt.value = d.id;
+            opt.textContent = d.nombre; // Usamos textContent para mayor seguridad
+            select.appendChild(opt);
+        });
+    }
+}
+
+// Asegúrate de llamar a esta función justo al final de tu script
+cargarContendientes();
 
     async function registrarVenta() {
         const nombre = document.getElementById('nombreCliente').value;
