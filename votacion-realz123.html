@@ -42,7 +42,7 @@
         async function cargar() {
             try {
                 const client = supabase.createClient(SB_URL, SB_KEY);
-                const { data, error } = await client.from('contendientes').select('*').order('id');
+                const { data, error } = await client.from('contendientes').select('*').eq('active', true).order('id');
                 
                 if (error) throw error;
                 if (!data || data.length === 0) {
