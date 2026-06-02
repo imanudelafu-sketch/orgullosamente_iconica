@@ -47,7 +47,7 @@
             
             data.forEach(d => {
                 let opt = document.createElement('option');
-                opt.value = d.id;
+                opt.value = d.id; // El ID se envía como número
                 opt.textContent = d.nombre;
                 select.appendChild(opt);
             });
@@ -60,11 +60,11 @@
     async function procesarVenta() {
         const nombre = document.getElementById('nombreCliente').value;
         const email = document.getElementById('emailCliente').value;
-        const dragaId = parseInt(document.getElementById('dragaSelect').value);
+        const dragaId = Number(document.getElementById('dragaSelect').value);
 
         if (!nombre || !email || !dragaId) return alert("Por favor, completa todos los campos.");
 
-        // A. Buscar el boleto que contiene el ID de la draga
+        // A. Buscar el boleto que contiene el ID elegido
         const { data: boleto, error: errFetch } = await sb
             .from('combinaciones_disponibles')
             .select('*')
@@ -91,7 +91,7 @@
 
         if (errInsert) return alert("Error al registrar el ticket: " + errInsert.message);
 
-        alert("¡Venta exitosa! Folio: " + boleto.id + "\nCombinación: " + boleto.combination_sorted.join(", "));
+        alert("¡Venta exitosa! Folio: " + boleto.id);
     }
 
     // Iniciar carga al abrir
