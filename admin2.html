@@ -60,13 +60,18 @@
   async function registrarTicket() {
     const nombre = document.getElementById('nombreCliente').value;
     const email = document.getElementById('emailCliente').value;
-    const dragaId = Number(document.getElementById('dragaSelect').value);
+    const dragaId = parseInt(document.getElementById('dragaSelect').value);
+      
+
+
 
     if (!nombre || !email || !dragaId) return alert("Completa todos los campos.");
 
     // 1. Llamada segura usando RPC (Evita el 406 y el PGRST116)
     const { data: boletos, error: errFetch } = await sb
         .rpc('buscar_boleto_disponible', { p_draga_id: dragaId });
+
+      
 
     if (errFetch) {
         console.error("Error RPC:", errFetch);
