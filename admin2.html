@@ -29,6 +29,11 @@
     
     <button onclick="registrarTicket()">Guardar Ticket</button>
 </div>
+<div id="boletoContainer" style="text-align: center; margin-top: 20px;">
+    <canvas id="boletoCanvas" width="600" height="300" style="border: 2px solid #ff00ff; border-radius: 10px;"></canvas>
+    <br>
+    <button onclick="descargarBoleto()" style="background: #33cc33; margin-top: 10px;">Descargar Boleto</button>
+</div>
 
 <script>
     // Configura aquí tus datos
@@ -107,6 +112,39 @@
         .eq('id', boleto.id);
 
     alert("¡Venta exitosa! ID Ticket: " + ticket.id);
+}
+    async function generarBoletoImagen(nombresArray, ticketId) {
+    const canvas = document.getElementById('boletoCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Fondo oscuro
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Título y Estilo
+    ctx.fillStyle = '#ff00ff';
+    ctx.font = 'bold 30px Arial';
+    ctx.fillText('Boleto Icónica', 200, 50);
+
+    // Dibujar nombres de las dragas
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '20px Arial';
+    nombresArray.forEach((nombre, index) => {
+        ctx.fillText(`${index + 1}. ${nombre}`, 50, 100 + (index * 40));
+    });
+
+    // ID del ticket
+    ctx.fillStyle = '#888';
+    ctx.font = '16px Arial';
+    ctx.fillText(`Ticket ID: ${ticketId}`, 450, 280);
+}
+
+function descargarBoleto() {
+    const canvas = document.getElementById('boletoCanvas');
+    const link = document.createElement('a');
+    link.download = 'mi-boleto-iconica.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
 }
     cargarContendientes();
 </script>
