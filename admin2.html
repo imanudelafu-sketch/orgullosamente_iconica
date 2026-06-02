@@ -68,9 +68,8 @@
             data.forEach(t => {
                 resDiv.innerHTML += `
                     <div class="resultado-item">
-                        <strong>Ticket ID:</strong> ${t.id} <br>
-                        <strong>Comprador:</strong> ${t.buyer_name} <br>
-                        <strong>Combo:</strong> ${t.combination.join(", ")}
+                        <strong>combinacion_id:</strong> ${t.combinacion_id} <br>
+                        <strong>combination_sorted:</strong> ${t.combination_sorted} <br>
                     </div>`;
             });
         } else {
