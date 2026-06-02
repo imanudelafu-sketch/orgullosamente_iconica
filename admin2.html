@@ -26,17 +26,18 @@
 </div>
 
 <script>
-    // Inicialización del cliente
     const sb = supabase.createClient('https://ctptnedwysxmlpzxujel.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g');
+    let listaDragas = [];
 
     async function cargarContendientes() {
         const { data } = await sb.from('contendientes').select('id, nombre').eq('active', true);
-        const select = document.getElementById('dragaSelect');
-        select.innerHTML = '<option value="">Selecciona una Draga...</option>';
         if (data) {
+            listaDragas = data; // Guardamos la lista en memoria
+            const select = document.getElementById('dragaSelect');
+            select.innerHTML = '<option value="">Selecciona una Draga...</option>';
             data.forEach(d => {
                 let opt = document.createElement('option');
-                opt.value = d.id;
+                opt.value = d.id; // Aseguramos que el valor sea el ID
                 opt.textContent = d.nombre;
                 select.appendChild(opt);
             });
@@ -46,31 +47,34 @@
     async function procesarVenta() {
         const nombre = document.getElementById('nombreCliente').value;
         const email = document.getElementById('emailCliente').value;
-        // Convertimos a número obligatoriamente
         const dragaId = Number(document.getElementById('dragaSelect').value);
 
         if (!nombre || !email || !dragaId) return alert("Completa todos los campos");
 
-        console.log("Intentando buscar boletos que contengan la draga ID:", dragaId);
+        // DEPURACIÓN: Ver qué estamos buscando
+        console.log("Buscando boletos con dragaId (tipo " + typeof dragaId + "):", dragaId);
 
-        // A. Búsqueda refinada
+        // A. Búsqueda con log detallado
         const { data: boleto, error: errFetch } = await sb
             .from('combinaciones_disponibles')
             .select('*')
             .eq('asignado', false)
-            .contains('combination_sorted', [dragaId]) // Filtro para array
+            .contains('combination_sorted', [dragaId])
             .limit(1)
             .single();
 
-        if (errFetch || !boleto) {
-            console.error("Error en búsqueda:", errFetch);
-            return alert("No se encontró ningún boleto disponible para la draga seleccionada.");
+        if (errFetch) {
+            console.error("Error de Supabase:", errFetch);
+            return alert("Error al buscar boletos. Revisa la consola (F12).");
         }
 
-        // B. Actualizar asignación
-        await sb.from('combinaciones_disponibles').update({ asignado: true }).eq('id', boleto.id);
+        if (!boleto) {
+            return alert("¡No hay boletos disponibles que contengan la draga con ID " + dragaId + "!");
+        }
 
-        // C. Insertar Ticket
+        // B. Asignación y C. Inserción (el resto del código igual...)
+        await sb.from('combinaciones_disponibles').update({ asignado: true }).eq('id', boleto.id);
+        
         const { error: errInsert } = await sb.from('tickets').insert([{
             buyer_name: nombre,
             buyer_email: email,
@@ -83,7 +87,7 @@
 
         if (errInsert) return alert("Error al registrar: " + errInsert.message);
 
-        alert("¡Venta exitosa! Folio: " + boleto.id + "\nCombinación: " + boleto.combination_sorted.join(", "));
+        alert("¡Venta exitosa! Folio: " + boleto.id);
     }
 
     cargarContendientes();
