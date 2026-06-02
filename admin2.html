@@ -2,32 +2,26 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Icónica Drag Virtual</title>
+    <title>Buscar Combinaciones por ID</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: #fff; padding: 40px; display: flex; justify-content: center; }
-        .container { background: #1a1a1a; padding: 30px; border-radius: 15px; width: 100%; max-width: 450px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-        h2 { color: #ff00ff; text-align: center; }
-        input, select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; box-sizing: border-box; }
-        #idDisplay { font-size: 0.9em; color: #888; margin-bottom: 10px; text-align: right; }
-        button { width: 100%; padding: 15px; background: #ff00ff; border: none; color: white; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #d400d4; }
+        .container { background: #1a1a1a; padding: 30px; border-radius: 15px; width: 100%; max-width: 500px; }
+        select { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; }
+        button { width: 100%; padding: 15px; background: #33cc33; border: none; color: white; font-weight: bold; border-radius: 8px; cursor: pointer; }
+        .resultado-item { padding: 15px; border-bottom: 1px solid #333; background: #222; margin-top: 10px; border-radius: 8px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Registrar Venta</h2>
-    <input type="text" id="nombreCliente" placeholder="Nombre del Cliente">
-    <input type="email" id="emailCliente" placeholder="Correo electrónico">
-    
-    <select id="dragaSelect" onchange="actualizarIdDisplay()">
+    <h2>Buscar Combinaciones</h2>
+    <select id="dragaSelect">
         <option value="">Cargando dragas...</option>
     </select>
-    <div id="idDisplay">ID seleccionado: -</div>
     
-    <button onclick="buscarPorId()">Guardar Ticket</button>
+    <button onclick="buscarPorId()">Buscar Combinaciones Disponibles</button>
+    <div id="resultado"></div>
 </div>
 
 <script>
@@ -36,7 +30,7 @@
     async function cargarContendientes() {
         const { data } = await sb.from('contendientes').select('id, nombre').eq('active', true);
         const select = document.getElementById('dragaSelect');
-        select.innerHTML = '<option value="">Selecciona una Draga...</option>';
+        select.innerHTML = '<option value="">Elige una Draga...</option>';
         if (data) {
             data.forEach(d => {
                 let opt = document.createElement('option');
@@ -47,41 +41,39 @@
         }
     }
 
-    // Nueva función para mostrar el ID en tiempo real
-    function actualizarIdDisplay() {
-        const select = document.getElementById('dragaSelect');
-        const display = document.getElementById('idDisplay');
-        display.textContent = select.value ? "ID seleccionado: " + select.value : "ID seleccionado: -";
+    async function buscarPorId() {
+        const dragaId = Number(document.getElementById('dragaSelect').value);
+        const resDiv = document.getElementById('resultado');
+        
+        if (!dragaId) return alert("Selecciona una draga");
+        resDiv.innerHTML = "Buscando...";
+
+        // Consultamos la tabla combinaciones_disponibles directamente
+        // Buscamos donde el array contenga el ID y no esté asignado
+        const { data, error } = await sb
+            .from('combinaciones_disponibles')
+            .select('id, combination_sorted')
+            .eq('asignado', false)
+            .contains('combination_sorted', [dragaId]);
+
+        if (error) {
+            resDiv.innerHTML = "Error: " + error.message;
+            return;
+        }
+
+        resDiv.innerHTML = `<h3>Resultados para Draga ID: ${dragaId}</h3>`;
+        if (data && data.length > 0) {
+            data.forEach(item => {
+                resDiv.innerHTML += `
+                    <div class="resultado-item">
+                        <strong>ID Combinación:</strong> ${item.id} <br>
+                        <strong>Combinación:</strong> ${item.combination_sorted.join(", ")}
+                    </div>`;
+            });
+        } else {
+            resDiv.innerHTML += "<p>No hay combinaciones disponibles para este ID.</p>";
+        }
     }
-async function buscarPorId() {
-    const dragaId = Number(document.getElementById('dragaSelect').value);
-    const resDiv = document.getElementById('resultado');
-    
-    if (!dragaId) return alert("Selecciona una draga primero");
-    resDiv.innerHTML = "Buscando...";
-
-    // Consulta sin filtros restrictivos para ver qué hay realmente
-    const { data, error } = await sb
-        .from('combinaciones_disponibles')
-        .select('id, combination_sorted, asignado');
-
-    if (error) return (resDiv.innerHTML = "Error: " + error.message);
-
-    // Filtramos manualmente en JavaScript para ver qué pasa
-    const encontrados = data.filter(item => item.combination_sorted.includes(dragaId));
-    
-    console.log("Datos totales:", data);
-    console.log("Encontrados con ID " + dragaId + ":", encontrados);
-
-    if (encontrados.length > 0) {
-        resDiv.innerHTML = `<h3>Encontrados: ${encontrados.length}</h3>`;
-        encontrados.forEach(item => {
-            resDiv.innerHTML += `<p>ID: ${item.id} | Asignado: ${item.asignado}</p>`;
-        });
-    } else {
-        resDiv.innerHTML = "No se encontró nada. ¿Estás seguro de que este ID está en los arrays?";
-    }
-}
 
     cargarContendientes();
 </script>
