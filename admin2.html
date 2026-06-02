@@ -2,17 +2,15 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Icónica Drag Virtual</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: #fff; padding: 40px; display: flex; justify-content: center; }
-        .container { background: #1a1a1a; padding: 30px; border-radius: 15px; width: 100%; max-width: 450px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-        h2 { color: #ff00ff; text-align: center; }
-        input, select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; box-sizing: border-box; }
-        #idDisplay { font-size: 0.9em; color: #888; margin-bottom: 10px; text-align: right; }
-        button { width: 100%; padding: 15px; background: #ff00ff; border: none; color: white; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #d400d4; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: #fff; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { background: #1a1a1a; padding: 20px; border-radius: 15px; width: 100%; max-width: 450px; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #ff00ff; border: none; color: white; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 10px; }
+        #boletoSection { margin-top: 30px; display: none; text-align: center; }
+        canvas { border: 2px solid #ff00ff; border-radius: 10px; background: #000; }
     </style>
 </head>
 <body>
@@ -21,132 +19,52 @@
     <h2>Registrar Venta</h2>
     <input type="text" id="nombreCliente" placeholder="Nombre del Cliente">
     <input type="email" id="emailCliente" placeholder="Correo electrónico">
-    
-    <select id="dragaSelect" onchange="actualizarIdDisplay()">
-        <option value="">Cargando dragas...</option>
-    </select>
-    <div id="idDisplay">ID seleccionado: -</div>
-    
-    <button onclick="registrarTicket()">Guardar Ticket</button>
+    <select id="dragaSelect"></select>
+    <button onclick="registrarTicket()">Guardar Ticket y Generar Boleto</button>
 </div>
-<div id="boletoContainer" style="text-align: center; margin-top: 20px;">
-    <canvas id="boletoCanvas" width="600" height="300" style="border: 2px solid #ff00ff; border-radius: 10px;"></canvas>
-    <br>
-    <button onclick="descargarBoleto()" style="background: #33cc33; margin-top: 10px;">Descargar Boleto</button>
+
+<div id="boletoSection">
+    <canvas id="boletoCanvas" width="500" height="250"></canvas>
+    <button onclick="descargarBoleto()" style="background: #33cc33;">Descargar Boleto PNG</button>
 </div>
 
 <script>
-    // Configura aquí tus datos
     const sb = supabase.createClient('https://ctptnedwysxmlpzxujel.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g');
 
-    // 1. Cargar las dragas en el selector
     async function cargarContendientes() {
         const { data } = await sb.from('contendientes').select('id, nombre').eq('active', true);
         const select = document.getElementById('dragaSelect');
-        select.innerHTML = '<option value="">Selecciona una Draga...</option>';
-        if (data) {
-            data.forEach(d => {
-                let opt = document.createElement('option');
-                opt.value = d.id;
-                opt.textContent = d.nombre;
-                select.appendChild(opt);
-            });
-        }
+        data.forEach(d => {
+            let opt = document.createElement('option');
+            opt.value = d.id; opt.textContent = d.nombre;
+            select.appendChild(opt);
+        });
     }
 
-    // 2. Mostrar el ID en tiempo real
-    function actualizarIdDisplay() {
-        const select = document.getElementById('dragaSelect');
-        const display = document.getElementById('idDisplay');
-        display.textContent = select.value ? "ID seleccionado: " + select.value : "ID seleccionado: -";
+    async function registrarTicket() {
+        const nombre = document.getElementById('nombreCliente').value;
+        const dragaId = Number(document.getElementById('dragaSelect').value);
+        
+        // 1. Llamar función RPC
+        const { data: boletos } = await sb.rpc('buscar_boleto_disponible', { p_draga_id: dragaId });
+        if (!boletos || boletos.length === 0) return alert("No hay boletos disponibles.");
+        
+        const boleto = boletos[0];
+
+        // 2. Obtener nombres de las dragas para el boleto
+        const { data: contendientes } = await sb.from('contendientes').select('nombre').in('id', boleto.combination_sorted);
+        const nombres = contendientes.map(c => c.nombre);
+
+        // 3. Registrar en BD (simplificado para el ejemplo)
+        const { data: ticket } = await sb.from('tickets').insert([{ 
+            buyer_name: nombre, combination_id: boleto.id 
+        }]).select('id').single();
+
+        // 4. Dibujar en Canvas
+        document.getElementById('boletoSection').style.display = 'block';
+        dibujarBoleto(nombres, ticket.id);
+        
+        await sb.from('combinaciones_disponibles').update({ asignado: true }).eq('id', boleto.id);
     }
 
-    // 3. Flujo completo de venta
-  async function registrarTicket() {
-    const nombre = document.getElementById('nombreCliente').value;
-    const email = document.getElementById('emailCliente').value;
-    const dragaId = parseInt(document.getElementById('dragaSelect').value);
-      
-
-
-
-    if (!nombre || !email || !dragaId) return alert("Completa todos los campos.");
-
-    // 1. Llamada segura usando RPC (Evita el 406 y el PGRST116)
-    const { data: boletos, error: errFetch } = await sb
-        .rpc('buscar_boleto_disponible', { p_draga_id: dragaId });
-
-      
-
-    if (errFetch) {
-        console.error("Error RPC:", errFetch);
-        return alert("Error al buscar en base de datos.");
-    }
-
-    if (!boletos || boletos.length === 0) {
-        return alert("¡No hay boletos disponibles que contengan esa draga!");
-    }
-
-    const boleto = boletos[0]; // Ahora tomamos el primer resultado de forma segura
-    console.log("Boleto encontrado:", boleto);
-
-    // 2. Registrar el ticket
-    const { data: ticket, error: errInsert } = await sb.from('tickets').insert([{
-        buyer_name: nombre,
-        buyer_email: email,
-        favorite_drag_id: dragaId,
-        combination_id: boleto.id,
-        combination: boleto.combination_sorted,
-        combination_sorted: boleto.combination_sorted,
-        is_paid: true
-    }]).select('id').single();
-
-    if (errInsert) {
-        console.error("Error al insertar:", errInsert);
-        return alert("Error al registrar: " + errInsert.message);
-    }
-
-    // 3. Marcar el boleto como asignado
-    await sb.from('combinaciones_disponibles')
-        .update({ asignado: true })
-        .eq('id', boleto.id);
-
-    alert("¡Venta exitosa! ID Ticket: " + ticket.id);
-}
-    async function generarBoletoImagen(nombresArray, ticketId) {
-    const canvas = document.getElementById('boletoCanvas');
-    const ctx = canvas.getContext('2d');
-
-    // Fondo oscuro
-    ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Título y Estilo
-    ctx.fillStyle = '#ff00ff';
-    ctx.font = 'bold 30px Arial';
-    ctx.fillText('Boleto Icónica', 200, 50);
-
-    // Dibujar nombres de las dragas
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '20px Arial';
-    nombresArray.forEach((nombre, index) => {
-        ctx.fillText(`${index + 1}. ${nombre}`, 50, 100 + (index * 40));
-    });
-
-    // ID del ticket
-    ctx.fillStyle = '#888';
-    ctx.font = '16px Arial';
-    ctx.fillText(`Ticket ID: ${ticketId}`, 450, 280);
-}
-
-function descargarBoleto() {
-    const canvas = document.getElementById('boletoCanvas');
-    const link = document.createElement('a');
-    link.download = 'mi-boleto-iconica.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-}
-    cargarContendientes();
-</script>
-</body>
-</html>
+    function dibujarB
