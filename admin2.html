@@ -56,45 +56,7 @@
         }
     }
 
-    // 3. Función de procesamiento de venta
-    async function procesarVenta() {
-        const nombre = document.getElementById('nombreCliente').value;
-        const email = document.getElementById('emailCliente').value;
-        const dragaId = Number(document.getElementById('dragaSelect').value);
-
-        if (!nombre || !email || !dragaId) return alert("Por favor, completa todos los campos.");
-
-        // A. Buscar el boleto que contiene el ID elegido
-        const { data: boleto, error: errFetch } = await sb
-            .from('combinaciones_disponibles')
-            .select('*')
-            .eq('asignado', false)
-            .contains('combination_sorted', [dragaId])
-            .limit(1)
-            .single();
-
-        if (errFetch || !boleto) return alert("¡No quedan boletos disponibles para esta draga!");
-
-        // B. Marcar boleto como asignado
-        await sb.from('combinaciones_disponibles').update({ asignado: true }).eq('id', boleto.id);
-
-        // C. Crear el ticket con todos los campos requeridos
-        const { error: errInsert } = await sb.from('tickets').insert([{
-            buyer_name: nombre,
-            buyer_email: email,
-            favorite_drag_id: dragaId,
-            combination_id: boleto.id,
-            combination: boleto.combination_sorted, 
-            combination_sorted: boleto.combination_sorted, 
-            is_paid: true
-        }]);
-
-        if (errInsert) return alert("Error al registrar el ticket: " + errInsert.message);
-
-        alert("¡Venta exitosa! Folio: " + boleto.id);
-    }
-
-    // Iniciar carga al abrir
+      // Iniciar carga al abrir
     cargarContendientes();
 </script>
 </body>
