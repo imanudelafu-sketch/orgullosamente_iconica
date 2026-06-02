@@ -2,53 +2,83 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buscador de Combinaciones - Icónica</title>
+    <title>Buscador por ID - Icónica</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: #fff; padding: 40px; display: flex; justify-content: center; }
-        .container { background: #1a1a1a; padding: 30px; border-radius: 15px; width: 100%; max-width: 500px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-        h2 { color: #ff00ff; text-align: center; margin-bottom: 20px; }
+        body { font-family: sans-serif; background: #0f0f0f; color: #fff; padding: 40px; display: flex; justify-content: center; }
+        .container { background: #1a1a1a; padding: 30px; border-radius: 15px; width: 100%; max-width: 500px; }
         select { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; }
-        button { width: 100%; padding: 15px; background: #ff00ff; border: none; color: white; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #d400d4; }
-        #resultado { margin-top: 25px; border-top: 1px solid #333; padding-top: 15px; }
-        .resultado-item { padding: 10px; border-bottom: 1px solid #222; font-size: 0.9em; }
+        button { width: 100%; padding: 15px; background: #ff00ff; border: none; color: white; font-weight: bold; border-radius: 8px; cursor: pointer; }
+        .resultado-item { padding: 10px; border-bottom: 1px solid #333; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Buscador de Dragas</h2>
+    <h2>Buscador por ID de Draga</h2>
     
     <select id="dragaSelect">
-        <option value="">Seleccionando...</option>
+        <option value="">Cargando dragas...</option>
     </select>
     
-    <button onclick="buscarPorNombre()">Buscar combinaciones</button>
-    
+    <button onclick="buscarPorId()">Buscar en Tickets</button>
     <div id="resultado"></div>
 </div>
 
 <script>
-    // Configuración de Supabase
     const sb = supabase.createClient('https://ctptnedwysxmlpzxujel.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g');
 
-    // 1. Cargar las dragas para el menú desplegable
+    // 1. Cargar dragas (El valor será el ID)
     async function cargarContendientes() {
-        const { data } = await sb.from('contendientes').select('nombre').eq('active', true);
+        const { data } = await sb.from('contendientes').select('id, nombre').eq('active', true);
         const select = document.getElementById('dragaSelect');
         select.innerHTML = '<option value="">Elige una Draga...</option>';
         if (data) {
             data.forEach(d => {
                 let opt = document.createElement('option');
-                opt.value = d.nombre;
-                opt.textContent = d.nombre;
+                opt.value = d.id; // Aquí guardamos el ID
+                opt.textContent = d.nombre; // Mostramos el nombre
                 select.appendChild(opt);
             });
         }
     }
 
-    // 2. Buscar en la vista usando el nombre
-    async function buscarPorNombre() {
-        const nombreDraga = document.getElementById
+    // 2. Buscar tickets donde el array 'combination' contenga el ID seleccionado
+    async function buscarPorId() {
+        const dragaId = Number(document.getElementById('dragaSelect').value);
+        const resDiv = document.getElementById('resultado');
+        
+        if (!dragaId) return alert("Selecciona una draga primero");
+        resDiv.innerHTML = "Buscando...";
+
+        // Usamos .contains para buscar el ID dentro del array de la tabla 'tickets'
+        const { data, error } = await sb
+            .from('tickets')
+            .select('id, buyer_name, combination')
+            .contains('combination', [dragaId]);
+
+        if (error) {
+            resDiv.innerHTML = "Error al buscar: " + error.message;
+            return;
+        }
+
+        // Mostrar resultados
+        resDiv.innerHTML = `<h3>Tickets encontrados (ID ${dragaId}):</h3>`;
+        if (data && data.length > 0) {
+            data.forEach(t => {
+                resDiv.innerHTML += `
+                    <div class="resultado-item">
+                        <strong>Ticket ID:</strong> ${t.id} <br>
+                        <strong>Comprador:</strong> ${t.buyer_name} <br>
+                        <strong>Combo:</strong> ${t.combination.join(", ")}
+                    </div>`;
+            });
+        } else {
+            resDiv.innerHTML += "<p>No hay tickets registrados con esta draga.</p>";
+        }
+    }
+
+    cargarContendientes();
+</script>
+</body>
+</html>
