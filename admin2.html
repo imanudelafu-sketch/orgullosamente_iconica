@@ -41,38 +41,39 @@
         });
     }
 
-    async function registrarTicket() {
+  async function registrarTicket() {
     const nombre = document.getElementById('nombreCliente').value;
     const email = document.getElementById('emailCliente').value;
     const dragaId = Number(document.getElementById('dragaSelect').value);
 
     if (!nombre || !email || !dragaId) return alert("Completa todos los campos.");
 
-    // 1. Llamar función RPC para obtener el boleto
-    const { data: boletos, error: errFetch } = await sb.rpc('buscar_boleto_disponible', { p_draga_id: dragaId });
-    if (errFetch || !boletos || boletos.length === 0) return alert("No hay boletos disponibles.");
-    
+    // 1. La función RPC ahora busca Y marca como asignado en un solo paso
+    const { data: boletos, error: errFetch } = await sb.rpc('marcar_y_obtener_boleto', { p_draga_id: dragaId });
+
+    if (errFetch || !boletos || boletos.length === 0) {
+        return alert("¡No hay boletos disponibles para esa draga!");
+    }
+
     const boleto = boletos[0];
 
-    // 2. Registrar en tickets
+    // 2. Registrar el ticket
     const { data: ticket, error: errInsert } = await sb.from('tickets').insert([{ 
         buyer_name: nombre, 
         buyer_email: email,
         combination_id: boleto.id 
     }]).select('id').single();
     
-    if (errInsert) return alert("Error al registrar: " + errInsert.message);
+    if (errInsert) return alert("Error al registrar ticket: " + errInsert.message);
 
-    // 3. Obtener nombres de las dragas para el dibujo
+    // 3. Ya no necesitas hacer el UPDATE aquí, ¡la función RPC ya lo hizo!
+    
+    // 4. Obtener nombres y dibujar
     const { data: contendientes } = await sb.from('contendientes').select('nombre').in('id', boleto.combination_sorted);
     const nombres = contendientes.map(c => c.nombre);
 
-    // 4. AQUÍ ESTÁ EL CAMBIO: Llamamos a dibujarBoleto
     dibujarBoleto(nombres, ticket.id);
-    
-    // 5. Marcar como asignado
-    await sb.from('combinaciones_disponibles').update({ asignado: true }).eq('id', boleto.id);
-    alert("¡Venta exitosa! ID Ticket: " + ticket.id);
+    alert("¡Venta exitosa! Boleto asignado: " + boleto.id);
 }
 
     cargarContendientes();
