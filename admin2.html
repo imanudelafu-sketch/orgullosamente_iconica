@@ -44,39 +44,47 @@
     }
 
     // 2. Buscar tickets donde el array 'combination' contenga el ID seleccionado
-    async function buscarPorId() {
-        const dragaId = Number(document.getElementById('dragaSelect').value);
-        const resDiv = document.getElementById('resultado');
-        
-        if (!dragaId) return alert("Selecciona una draga primero");
-        resDiv.innerHTML = "Buscando...";
+   // 2. Buscar en la vista donde nombres_dragas contenga el ID
+async function buscarPorId() {
+    const dragaId = Number(document.getElementById('dragaSelect').value);
+    const resDiv = document.getElementById('resultado');
+    
+    if (!dragaId) return alert("Selecciona una draga primero");
+    resDiv.innerHTML = "Buscando...";
 
-        // Usamos .contains para buscar el ID dentro del array de la tabla 'tickets'
-        const { data, error } = await sb
-            .from('vista_combinaciones_nombres')
-            .select('combinacion_id, combination_sorted')
-            .contains('nombres_dragas', [dragaId]);
+    // NOTA: Como en la vista el campo es 'nombres_dragas' (texto), 
+    // buscamos el ID convirtiéndolo a texto o usando el nombre.
+    // Si quieres buscar por ID dentro de la vista, asegúrate de que 
+    // la vista tenga acceso a los IDs originales.
+    
+    // Si la vista solo tiene nombres, lo correcto es buscar por el nombre asociado al ID:
+    const nombreDraga = document.getElementById('dragaSelect').options[document.getElementById('dragaSelect').selectedIndex].text;
 
-        if (error) {
-            resDiv.innerHTML = "Error al buscar: " + error.message;
-            return;
-        }
+    const { data, error } = await sb
+        .from('vista_combinaciones_nombres')
+        .select('combinacion_id, combination_sorted, nombres_dragas')
+        .ilike('nombres_dragas', `%${nombreDraga}%`); // Buscamos el nombre en el texto
 
-        // Mostrar resultados
-        resDiv.innerHTML = `<h3>Tickets encontrados (ID ${dragaId}):</h3>`;
-        if (data && data.length > 0) {
-            data.forEach(t => {
-                resDiv.innerHTML += `
-                    <div class="resultado-item">
-                        <strong>combinacion_id:</strong> ${t.combinacion_id} <br>
-                        <strong>combination_sorted:</strong> ${t.combination_sorted} <br>
-                    </div>`;
-            });
-        } else {
-            resDiv.innerHTML += "<p>No hay tickets registrados con esta draga.</p>";
-        }
+    if (error) {
+        resDiv.innerHTML = "Error al buscar: " + error.message;
+        return;
     }
 
+    // Mostrar resultados
+    resDiv.innerHTML = `<h3>Resultados para ${nombreDraga}:</h3>`;
+    if (data && data.length > 0) {
+        data.forEach(t => {
+            resDiv.innerHTML += `
+                <div class="resultado-item">
+                    <strong>combinacion_id:</strong> ${t.combinacion_id} <br>
+                    <strong>combination_sorted:</strong> ${t.combination_sorted.join(", ")} <br>
+                    <strong>dragas:</strong> ${t.nombres_dragas} <br>
+                </div>`;
+        });
+    } else {
+        resDiv.innerHTML += "<p>No hay combinaciones registradas con esta draga.</p>";
+    }
+}
     cargarContendientes();
 </script>
 </body>
