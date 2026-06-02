@@ -92,3 +92,14 @@
         if (errInsert) return alert("Error al registrar: " + errInsert.message);
 
         // C. Marcar el boleto como asignado
+        await sb.from('combinaciones_disponibles')
+            .update({ asignado: true })
+            .eq('id', boleto.id);
+
+        alert("¡Venta exitosa! ID Ticket: " + ticket.id + " | Boleto: " + boleto.id);
+    }
+
+    cargarContendientes();
+</script>
+</body>
+</html>
