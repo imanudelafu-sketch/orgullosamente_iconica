@@ -42,47 +42,44 @@
         }
     }
 
-    async function registrarTicket() {
-        const nombre = document.getElementById('nombreCliente').value;
-        const email = document.getElementById('emailCliente').value;
-        const dragaId = Number(document.getElementById('dragaSelect').value);
+  async function procesarVenta() {
+    const nombre = document.getElementById('nombreCliente').value;
+    const email = document.getElementById('emailCliente').value;
+    const dragaId = Number(document.getElementById('dragaSelect').value);
 
-        if (!nombre || !email || !dragaId) return alert("Completa todos los campos");
+    if (!nombre || !email || !dragaId) return alert("Completa todos los campos");
 
-        // 1. Obtener boleto disponible (que contenga el dragaId)
-        const { data: boleto, error: errFetch } = await sb
-            .from('combinaciones_disponibles')
-            .select('*')
-            .eq('asignado', false)
-            .contains('combination_sorted', [dragaId])
-            .limit(1)
-            .single();
+    // A. Usamos la función RPC que creamos
+    const { data: boletos, error: errFetch } = await sb
+        .rpc('buscar_boleto_disponible', { p_draga_id: dragaId });
 
-        if (errFetch || !boleto) return alert("¡No hay boletos disponibles para esta draga!");
-
-        // 2. Insertar en tabla tickets
-        // Guardamos combination y combination_sorted con los datos del boleto
-        const { data: ticket, error: errInsert } = await sb.from('tickets').insert([{
-            buyer_name: nombre,
-            buyer_email: email,
-            favorite_drag_id: dragaId,
-            combination: boleto.combination_sorted,
-            combination_sorted: boleto.combination_sorted,
-            is_paid: true
-        }]).select('id').single(); // Pedimos el ID recién generado
-
-        if (errInsert) return alert("Error al registrar ticket: " + errInsert.message);
-
-        // 3. Actualizar el combination_id en el ticket recién creado
-        await sb.from('tickets')
-            .update({ combination_id: boleto.id })
-            .eq('id', ticket.id);
-
-        // 4. Marcar como asignado en pool
-        await sb.from('combinaciones_disponibles').update({ asignado: true }).eq('id', boleto.id);
-
-        alert("¡Venta exitosa! Ticket ID: " + ticket.id);
+    if (errFetch || !boletos || boletos.length === 0) {
+        console.error("Error al buscar:", errFetch);
+        return alert("No hay boletos disponibles.");
     }
+
+    const boleto = boletos[0]; // El primer boleto encontrado
+
+    // B. Marcamos como asignado (aquí seguimos usando el cliente normal)
+    await sb.from('combinaciones_disponibles').update({ asignado: true }).eq('id', boleto.id);
+
+    // C. Registramos el ticket
+    const { data: nuevoTicket, error: errInsert } = await sb.from('tickets').insert([{
+        buyer_name: nombre,
+        buyer_email: email,
+        favorite_drag_id: dragaId,
+        combination: boleto.combination_sorted,
+        combination_sorted: boleto.combination_sorted,
+        is_paid: true
+    }]).select('id').single();
+
+    if (errInsert) return alert("Error al registrar: " + errInsert.message);
+
+    // D. Actualizamos el ID del ticket
+    await sb.from('tickets').update({ combination_id: boleto.id }).eq('id', nuevoTicket.id);
+
+    alert("¡Venta exitosa! ID Ticket: " + nuevoTicket.id);
+}
 
     cargarContendientes();
 </script>
