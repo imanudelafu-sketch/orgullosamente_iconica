@@ -55,7 +55,48 @@
             console.error("Error al cargar:", err.message);
         }
     }
+async function procesarVenta() {
+    const nombre = document.getElementById('nombreCliente').value;
+    const email = document.getElementById('emailCliente').value;
+    const dragaId = Number(document.getElementById('dragaSelect').value);
 
+    if (!nombre || !email || !dragaId) return alert("Por favor, completa todos los campos.");
+
+    // 1. Buscamos un boleto disponible que contenga la draga elegida (6 números)
+    const { data: boleto, error: errFetch } = await sb
+        .from('combinaciones_disponibles')
+        .select('*')
+        .eq('asignado', false)
+        .contains('combination_sorted', [dragaId]) // Busca boletos con ese ID
+        .limit(1)
+        .single();
+
+    if (errFetch || !boleto) return alert("¡No hay boletos disponibles para esta draga!");
+
+    // 2. Marcamos el boleto como asignado en 'combinaciones_disponibles'
+    const { error: errUpdate } = await sb
+        .from('combinaciones_disponibles')
+        .update({ asignado: true })
+        .eq('id', boleto.id);
+
+    if (errUpdate) return alert("Error al actualizar el boleto: " + errUpdate.message);
+
+    // 3. Registramos el ticket con toda la información
+    const { error: errInsert } = await sb.from('tickets').insert([{
+        buyer_name: nombre,
+        buyer_email: email,
+        favorite_drag_id: dragaId,
+        combination_id: boleto.id,            // Relación con el pool
+        combination: boleto.combination_sorted, // El array de 6 números
+        combination_sorted: boleto.combination_sorted, 
+        is_paid: true
+    }]);
+
+    if (errInsert) return alert("Error al registrar el ticket: " + errInsert.message);
+
+    // 4. Éxito
+    alert("¡Boleto generado correctamente!\nID Boleto: " + boleto.id + "\nCombinación: " + boleto.combination_sorted.join(", "));
+}
       // Iniciar carga al abrir
     cargarContendientes();
 </script>
