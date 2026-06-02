@@ -2,69 +2,53 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Buscador de Combinaciones - Icónica</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: sans-serif; background: #0f0f0f; color: #fff; padding: 40px; display: flex; justify-content: center; }
-        .container { background: #1a1a1a; padding: 30px; border-radius: 12px; width: 100%; max-width: 450px; }
-        input, select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 6px; border: 1px solid #444; background: #222; color: white; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; background: #ff00ff; border: none; color: white; font-weight: bold; border-radius: 6px; cursor: pointer; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: #fff; padding: 40px; display: flex; justify-content: center; }
+        .container { background: #1a1a1a; padding: 30px; border-radius: 15px; width: 100%; max-width: 500px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        h2 { color: #ff00ff; text-align: center; margin-bottom: 20px; }
+        select { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; }
+        button { width: 100%; padding: 15px; background: #ff00ff; border: none; color: white; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #d400d4; }
+        #resultado { margin-top: 25px; border-top: 1px solid #333; padding-top: 15px; }
+        .resultado-item { padding: 10px; border-bottom: 1px solid #222; font-size: 0.9em; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Seleccionar Draga</h2>
+    <h2>Buscador de Dragas</h2>
+    
     <select id="dragaSelect">
-        <option value="">Cargando dragas...</option>
+        <option value="">Seleccionando...</option>
     </select>
     
-    <button onclick="buscarBoleto()">Buscar Combinación</button>
-    <div id="resultado" style="margin-top: 20px; color: #00ff00;"></div>
+    <button onclick="buscarPorNombre()">Buscar combinaciones</button>
+    
+    <div id="resultado"></div>
 </div>
 
 <script>
+    // Configuración de Supabase
     const sb = supabase.createClient('https://ctptnedwysxmlpzxujel.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g');
 
+    // 1. Cargar las dragas para el menú desplegable
     async function cargarContendientes() {
-        const { data } = await sb.from('contendientes').select('id, nombre').eq('active', true);
+        const { data } = await sb.from('contendientes').select('nombre').eq('active', true);
         const select = document.getElementById('dragaSelect');
-        select.innerHTML = '<option value="">Selecciona una Draga...</option>';
+        select.innerHTML = '<option value="">Elige una Draga...</option>';
         if (data) {
             data.forEach(d => {
                 let opt = document.createElement('option');
-                opt.value = d.id;
+                opt.value = d.nombre;
                 opt.textContent = d.nombre;
                 select.appendChild(opt);
             });
         }
     }
 
-    async function buscarBoleto() {
-        const dragaId = Number(document.getElementById('dragaSelect').value);
-        if (!dragaId) return alert("Por favor selecciona una draga");
-
-        // Usamos una consulta simple que no genera el error 406
-        // Filtramos por asignado false y luego en el lado del cliente filtramos por el array
-        const { data, error } = await sb
-            .from('combinaciones_disponibles')
-            .select('*')
-            .eq('asignado', false);
-
-        if (error) return console.error(error);
-
-        // Filtramos el array en JavaScript en lugar de SQL para evitar el 406
-        const boletoEncontrado = data.find(b => b.combination_sorted.includes(dragaId));
-
-        const resDiv = document.getElementById('resultado');
-        if (boletoEncontrado) {
-            resDiv.innerHTML = "¡Boleto encontrado! ID: " + boletoEncontrado.id + "<br>Combinación: " + boletoEncontrado.combination_sorted.join(", ");
-        } else {
-            resDiv.innerHTML = "No se encontraron boletos disponibles para esta draga.";
-        }
-    }
-
-    cargarContendientes();
-</script>
-</body>
-</html>
+    // 2. Buscar en la vista usando el nombre
+    async function buscarPorNombre() {
+        const nombreDraga = document.getElementById
