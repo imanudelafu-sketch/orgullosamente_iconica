@@ -2,20 +2,19 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Registro de Ventas - Icónica</title>
+    <title>Registro de Ticket - Icónica</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: sans-serif; background: #0f0f0f; color: #fff; padding: 40px; display: flex; justify-content: center; }
-        .container { background: #1a1a1a; padding: 30px; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-        h2 { color: #ff00ff; text-align: center; }
-        input, select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 6px; border: 1px solid #444; background: #222; color: white; box-sizing: border-box; }
+        .container { background: #1a1a1a; padding: 30px; border-radius: 12px; width: 100%; max-width: 450px; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 6px; border: 1px solid #444; background: #222; color: white; }
         button { width: 100%; padding: 15px; background: #ff00ff; border: none; color: white; font-weight: bold; border-radius: 6px; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Registrar Venta</h2>
+    <h2>Nueva Venta</h2>
     <input type="text" id="nombreCliente" placeholder="Nombre del Cliente">
     <input type="email" id="emailCliente" placeholder="Correo electrónico">
     
@@ -23,11 +22,11 @@
         <option value="">Cargando dragas...</option>
     </select>
     
-    <button onclick="iniciarVenta()">Siguiente paso</button>
+    <button onclick="registrarTicket()">Guardar Ticket</button>
 </div>
 
 <script>
-    const sb = supabase.createClient('TU_URL', 'TU_ANON_KEY');
+    const sb = supabase.createClient('https://ctptnedwysxmlpzxujel.supabase.co', 'TU_ANON_KEY');
 
     async function cargarContendientes() {
         const { data } = await sb.from('contendientes').select('id, nombre').eq('active', true);
@@ -43,15 +42,39 @@
         }
     }
 
-    function iniciarVenta() {
+    async function registrarTicket() {
         const nombre = document.getElementById('nombreCliente').value;
         const email = document.getElementById('emailCliente').value;
-        const dragaId = document.getElementById('dragaSelect').value;
+        const dragaId = Number(document.getElementById('dragaSelect').value);
 
-        if (!nombre || !email || !dragaId) return alert("Por favor completa todos los campos");
+        if (!nombre || !email || !dragaId) return alert("Completa todos los campos");
+
+        // 1. Buscamos el boleto usando la función RPC (evita error 406)
+        const { data: boletos, error: errFetch } = await sb.rpc('buscar_boleto_disponible', { p_draga_id: dragaId });
         
-        alert("¡Datos capturados! Cliente: " + nombre + " | Draga ID: " + dragaId);
-        // Aquí conectaremos la lógica de generación del boleto en el siguiente paso.
+        if (errFetch || !boletos || boletos.length === 0) return alert("¡No hay boletos disponibles para esta draga!");
+
+        const boleto = boletos[0];
+
+        // 2. Insertamos el ticket
+        const { data: ticket, error: errInsert } = await sb.from('tickets').insert([{
+            buyer_name: nombre,
+            buyer_email: email,
+            favorite_drag_id: dragaId,
+            combination: boleto.combination_sorted,
+            combination_sorted: boleto.combination_sorted,
+            is_paid: true
+        }]).select('id').single();
+
+        if (errInsert) return alert("Error al registrar ticket: " + errInsert.message);
+
+        // 3. Relacionamos el combination_id
+        await sb.from('tickets').update({ combination_id: boleto.id }).eq('id', ticket.id);
+
+        // 4. Marcamos como asignado
+        await sb.from('combinaciones_disponibles').update({ asignado: true }).eq('id', boleto.id);
+
+        alert("¡Venta exitosa! ID Ticket: " + ticket.id);
     }
 
     cargarContendientes();
