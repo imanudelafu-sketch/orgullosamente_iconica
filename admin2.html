@@ -1,23 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Icónica Drag Virtual</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: #fff; padding: 40px; display: flex; justify-content: center; }
+        .container { background: #1a1a1a; padding: 30px; border-radius: 15px; width: 100%; max-width: 450px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        h2 { color: #ff00ff; text-align: center; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; box-sizing: border-box; }
+        #idDisplay { font-size: 0.9em; color: #888; margin-bottom: 10px; text-align: right; }
+        button { width: 100%; padding: 15px; background: #ff00ff; border: none; color: white; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #d400d4; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Registrar Venta</h2>
+    <input type="text" id="nombreCliente" placeholder="Nombre del Cliente">
+    <input type="email" id="emailCliente" placeholder="Correo electrónico">
+    
+    <select id="dragaSelect" onchange="actualizarIdDisplay()">
+        <option value="">Cargando dragas...</option>
+    </select>
+    <div id="idDisplay">ID seleccionado: -</div>
+    
+    <button onclick="registrarTicket()">Guardar Ticket</button>
+</div>
+
 <script>
+    // Configura aquí tus datos
     const sb = supabase.createClient('https://ctptnedwysxmlpzxujel.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g');
 
-    async function auditarBaseDeDatos() {
-        console.log("Iniciando auditoría...");
-        
-        // 1. Traer TODOS los boletos, sin filtros
-        const { data, error } = await sb
-            .from('combinaciones_disponibles')
-            .select('id, combination_sorted, asignado')
-            .limit(10); // Solo los primeros 10 para no saturar
-
-        if (error) {
-            console.error("Error al leer la base de datos:", error);
-            return;
+    // 1. Cargar las dragas en el selector
+    async function cargarContendientes() {
+        const { data } = await sb.from('contendientes').select('id, nombre').eq('active', true);
+        const select = document.getElementById('dragaSelect');
+        select.innerHTML = '<option value="">Selecciona una Draga...</option>';
+        if (data) {
+            data.forEach(d => {
+                let opt = document.createElement('option');
+                opt.value = d.id;
+                opt.textContent = d.nombre;
+                select.appendChild(opt);
+            });
         }
-
-        console.table(data);
-        alert("Revisa la consola (F12) para ver la tabla de datos.");
     }
 
-    auditarBaseDeDatos();
-</script>
+    // 2. Mostrar el ID en tiempo real
+    function actualizarIdDisplay() {
+        const select = document.getElementById('dragaSelect');
+        const display = document.getElementById('idDisplay');
+        display.textContent = select.value ? "ID seleccionado: " + select.value : "ID seleccionado: -";
+    }
+
+    // 3. Flujo completo de venta
+    async function registrarTicket() {
+        const nombre = document.getElementById('nombreCliente').value;
+        const email = document.getElementById('emailCliente').value;
+        const dragaId = Number(document.getElementById('dragaSelect').value);
+
+        if (!nombre || !email || !dragaId) return alert("Completa todos los campos.");
+
+        // A. Buscar un boleto disponible que contenga la draga seleccionada
+        const { data: boleto, error: errFetch } = await sb
+            .from('combinaciones_disponibles')
+            .select('*')
+            .eq('asignado', false)
+            .contains('combination_sorted', [dragaId]) // Busca el ID dentro del array
+            .limit(1)
+            .single();
+
+        if (errFetch || !boleto) {
+            console.error(errFetch);
+            return alert("¡No hay boletos disponibles que contengan la draga seleccionada!");
+        }
+
+        // B. Registrar el ticket
+        const { data: ticket, error: errInsert } = await sb.from('tickets').insert([{
+            buyer_name: nombre,
+            buyer_email: email,
+            favorite_drag_id: dragaId,
+            combination_id: boleto.id,
+            combination: boleto.combination_sorted,
+            combination_sorted: boleto.combination_sorted,
+            is_paid: true
+        }]).select('id').single();
+
+        if (errInsert) return alert("Error al registrar: " + errInsert.message);
+
+        // C. Marcar el boleto como asignado
