@@ -43,39 +43,53 @@
     }
 
     async function registrarTicket() {
-        const nombre = document.getElementById('nombreCliente').value;
-        const email = document.getElementById('emailCliente').value;
-        const dragaId = Number(document.getElementById('dragaSelect').value);
+    const nombre = document.getElementById('nombreCliente').value;
+    const email = document.getElementById('emailCliente').value;
+    const dragaId = Number(document.getElementById('dragaSelect').value);
 
-        if (!nombre || !email || !dragaId) return alert("Completa todos los campos");
+    if (!nombre || !email || !dragaId) return alert("Completa todos los campos");
 
-        // 1. Buscamos el boleto usando la función RPC (evita error 406)
-        const { data: boletos, error: errFetch } = await sb.rpc('buscar_boleto_disponible', { p_draga_id: dragaId });
-        
-        if (errFetch || !boletos || boletos.length === 0) return alert("¡No hay boletos disponibles para esta draga!");
+    console.log("Iniciando venta para draga ID:", dragaId);
 
-        const boleto = boletos[0];
-
-        // 2. Insertamos el ticket
-        const { data: ticket, error: errInsert } = await sb.from('tickets').insert([{
-            buyer_name: nombre,
-            buyer_email: email,
-            favorite_drag_id: dragaId,
-            combination: boleto.combination_sorted,
-            combination_sorted: boleto.combination_sorted,
-            is_paid: true
-        }]).select('id').single();
-
-        if (errInsert) return alert("Error al registrar ticket: " + errInsert.message);
-
-        // 3. Relacionamos el combination_id
-        await sb.from('tickets').update({ combination_id: boleto.id }).eq('id', ticket.id);
-
-        // 4. Marcamos como asignado
-        await sb.from('combinaciones_disponibles').update({ asignado: true }).eq('id', boleto.id);
-
-        alert("¡Venta exitosa! ID Ticket: " + ticket.id);
+    // 1. Llamada RPC con logs
+    const { data: boletos, error: errFetch } = await sb.rpc('buscar_boleto_disponible', { p_draga_id: dragaId });
+    
+    if (errFetch) {
+        console.error("Error detallado de RPC:", errFetch);
+        return alert("Error en el servidor. Revisa la consola (F12).");
     }
+    
+    if (!boletos || boletos.length === 0) {
+        console.log("La función RPC no devolvió boletos.");
+        return alert("¡No hay boletos disponibles para esta draga!");
+    }
+
+    console.log("Boleto encontrado:", boletos[0]);
+    const boleto = boletos[0];
+
+    // 2. Intento de Inserción
+    const { data: ticket, error: errInsert } = await sb.from('tickets').insert([{
+        buyer_name: nombre,
+        buyer_email: email,
+        favorite_drag_id: dragaId,
+        combination: boleto.combination_sorted,
+        combination_sorted: boleto.combination_sorted,
+        is_paid: true
+    }]).select('id').single();
+
+    if (errInsert) {
+        console.error("Error al insertar ticket:", errInsert);
+        return alert("Error al registrar ticket: " + errInsert.message);
+    }
+
+    console.log("Ticket creado con ID:", ticket.id);
+
+    // 3. Actualizaciones finales
+    await sb.from('tickets').update({ combination_id: boleto.id }).eq('id', ticket.id);
+    await sb.from('combinaciones_disponibles').update({ asignado: true }).eq('id', boleto.id);
+
+    alert("¡Venta exitosa! ID Ticket: " + ticket.id);
+}
 
     cargarContendientes();
 </script>
