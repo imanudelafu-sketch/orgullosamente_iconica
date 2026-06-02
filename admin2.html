@@ -2,31 +2,29 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Registro de Ticket - Icónica</title>
+    <title>Buscador de Combinaciones - Icónica</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: sans-serif; background: #0f0f0f; color: #fff; padding: 40px; display: flex; justify-content: center; }
         .container { background: #1a1a1a; padding: 30px; border-radius: 12px; width: 100%; max-width: 450px; }
-        input, select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 6px; border: 1px solid #444; background: #222; color: white; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 6px; border: 1px solid #444; background: #222; color: white; box-sizing: border-box; }
         button { width: 100%; padding: 15px; background: #ff00ff; border: none; color: white; font-weight: bold; border-radius: 6px; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Nueva Venta</h2>
-    <input type="text" id="nombreCliente" placeholder="Nombre del Cliente">
-    <input type="email" id="emailCliente" placeholder="Correo electrónico">
-    
+    <h2>Seleccionar Draga</h2>
     <select id="dragaSelect">
         <option value="">Cargando dragas...</option>
     </select>
     
-    <button onclick="registrarTicket()">Guardar Ticket</button>
+    <button onclick="buscarBoleto()">Buscar Combinación</button>
+    <div id="resultado" style="margin-top: 20px; color: #00ff00;"></div>
 </div>
 
 <script>
-    const sb = supabase.createClient('https://ctptnedwysxmlpzxujel.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g');
+    const sb = supabase.createClient('https://ctptnedwysxmlpzxujel.supabase.co', 'TU_ANON_KEY');
 
     async function cargarContendientes() {
         const { data } = await sb.from('contendientes').select('id, nombre').eq('active', true);
@@ -42,54 +40,29 @@
         }
     }
 
-    async function registrarTicket() {
-    const nombre = document.getElementById('nombreCliente').value;
-    const email = document.getElementById('emailCliente').value;
-    const dragaId = Number(document.getElementById('dragaSelect').value);
+    async function buscarBoleto() {
+        const dragaId = Number(document.getElementById('dragaSelect').value);
+        if (!dragaId) return alert("Por favor selecciona una draga");
 
-    if (!nombre || !email || !dragaId) return alert("Completa todos los campos");
+        // Usamos una consulta simple que no genera el error 406
+        // Filtramos por asignado false y luego en el lado del cliente filtramos por el array
+        const { data, error } = await sb
+            .from('combinaciones_disponibles')
+            .select('*')
+            .eq('asignado', false);
 
-    console.log("Iniciando venta para draga ID:", dragaId);
+        if (error) return console.error(error);
 
-    // 1. Llamada RPC con logs
-    const { data: boletos, error: errFetch } = await sb.rpc('buscar_boleto_disponible', { p_draga_id: dragaId });
-    
-    if (errFetch) {
-        console.error("Error detallado de RPC:", errFetch);
-        return alert("Error en el servidor. Revisa la consola (F12).");
+        // Filtramos el array en JavaScript en lugar de SQL para evitar el 406
+        const boletoEncontrado = data.find(b => b.combination_sorted.includes(dragaId));
+
+        const resDiv = document.getElementById('resultado');
+        if (boletoEncontrado) {
+            resDiv.innerHTML = "¡Boleto encontrado! ID: " + boletoEncontrado.id + "<br>Combinación: " + boletoEncontrado.combination_sorted.join(", ");
+        } else {
+            resDiv.innerHTML = "No se encontraron boletos disponibles para esta draga.";
+        }
     }
-    
-    if (!boletos || boletos.length === 0) {
-        console.log("La función RPC no devolvió boletos.");
-        return alert("¡No hay boletos disponibles para esta draga!");
-    }
-
-    console.log("Boleto encontrado:", boletos[0]);
-    const boleto = boletos[0];
-
-    // 2. Intento de Inserción
-    const { data: ticket, error: errInsert } = await sb.from('tickets').insert([{
-        buyer_name: nombre,
-        buyer_email: email,
-        favorite_drag_id: dragaId,
-        combination: boleto.combination_sorted,
-        combination_sorted: boleto.combination_sorted,
-        is_paid: true
-    }]).select('id').single();
-
-    if (errInsert) {
-        console.error("Error al insertar ticket:", errInsert);
-        return alert("Error al registrar ticket: " + errInsert.message);
-    }
-
-    console.log("Ticket creado con ID:", ticket.id);
-
-    // 3. Actualizaciones finales
-    await sb.from('tickets').update({ combination_id: boleto.id }).eq('id', ticket.id);
-    await sb.from('combinaciones_disponibles').update({ asignado: true }).eq('id', boleto.id);
-
-    alert("¡Venta exitosa! ID Ticket: " + ticket.id);
-}
 
     cargarContendientes();
 </script>
