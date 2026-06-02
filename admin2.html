@@ -53,41 +53,34 @@
         const display = document.getElementById('idDisplay');
         display.textContent = select.value ? "ID seleccionado: " + select.value : "ID seleccionado: -";
     }
-
-  async function registrarTicket() {
-    const nombre = document.getElementById('nombreCliente').value;
-    const email = document.getElementById('emailCliente').value;
+async function buscarPorId() {
     const dragaId = Number(document.getElementById('dragaSelect').value);
+    const resDiv = document.getElementById('resultado');
+    
+    if (!dragaId) return alert("Selecciona una draga primero");
+    resDiv.innerHTML = "Buscando...";
 
-    if (!nombre || !email || !dragaId) return alert("Completa los campos.");
+    // Consulta sin filtros restrictivos para ver qué hay realmente
+    const { data, error } = await sb
+        .from('combinaciones_disponibles')
+        .select('id, combination_sorted, asignado');
 
-    // 1. Obtener solo el ID de la combinación mediante la función RPC
-    const { data: combinacionId, error: errFetch } = await sb
-        .rpc('obtener_id_combinacion', { p_draga_id: dragaId });
+    if (error) return (resDiv.innerHTML = "Error: " + error.message);
 
-    if (errFetch || !combinacionId) {
-        return alert("No hay combinaciones disponibles para esta draga.");
+    // Filtramos manualmente en JavaScript para ver qué pasa
+    const encontrados = data.filter(item => item.combination_sorted.includes(dragaId));
+    
+    console.log("Datos totales:", data);
+    console.log("Encontrados con ID " + dragaId + ":", encontrados);
+
+    if (encontrados.length > 0) {
+        resDiv.innerHTML = `<h3>Encontrados: ${encontrados.length}</h3>`;
+        encontrados.forEach(item => {
+            resDiv.innerHTML += `<p>ID: ${item.id} | Asignado: ${item.asignado}</p>`;
+        });
+    } else {
+        resDiv.innerHTML = "No se encontró nada. ¿Estás seguro de que este ID está en los arrays?";
     }
-
-    console.log("ID de combinación obtenido:", combinacionId);
-
-    // 2. Registrar ticket usando ese ID
-    const { data: ticket, error: errInsert } = await sb.from('tickets').insert([{
-        buyer_name: nombre,
-        buyer_email: email,
-        favorite_drag_id: dragaId,
-        combination_id: combinacionId, // <--- Aquí usamos el ID obtenido
-        is_paid: true
-    }]).select('id').single();
-
-    if (errInsert) return alert("Error al registrar ticket: " + errInsert.message);
-
-    // 3. Marcar como asignado
-    await sb.from('combinaciones_disponibles')
-        .update({ asignado: true })
-        .eq('id', combinacionId);
-
-    alert("¡Venta exitosa! ID Ticket: " + ticket.id + " | Combinación ID: " + combinacionId);
 }
 
     cargarContendientes();
