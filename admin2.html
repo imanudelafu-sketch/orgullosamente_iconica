@@ -42,51 +42,38 @@
     }
 
     async function registrarTicket() {
-        const nombre = document.getElementById('nombreCliente').value;
-        const dragaId = Number(document.getElementById('dragaSelect').value);
-        
-        // 1. Llamar función RPC
-        const { data: boletos } = await sb.rpc('buscar_boleto_disponible', { p_draga_id: dragaId });
-        if (!boletos || boletos.length === 0) return alert("No hay boletos disponibles.");
-        
-        const boleto = boletos[0];
+    const nombre = document.getElementById('nombreCliente').value;
+    const email = document.getElementById('emailCliente').value;
+    const dragaId = Number(document.getElementById('dragaSelect').value);
 
-        // 2. Obtener nombres de las dragas para el boleto
-        const { data: contendientes } = await sb.from('contendientes').select('nombre').in('id', boleto.combination_sorted);
-        const nombres = contendientes.map(c => c.nombre);
+    if (!nombre || !email || !dragaId) return alert("Completa todos los campos.");
 
-        // 3. Registrar en BD (simplificado para el ejemplo)
-        const { data: ticket } = await sb.from('tickets').insert([{ 
-            buyer_name: nombre, combination_id: boleto.id 
-        }]).select('id').single();
+    // 1. Llamar función RPC para obtener el boleto
+    const { data: boletos, error: errFetch } = await sb.rpc('buscar_boleto_disponible', { p_draga_id: dragaId });
+    if (errFetch || !boletos || boletos.length === 0) return alert("No hay boletos disponibles.");
+    
+    const boleto = boletos[0];
 
-        // 4. Dibujar en Canvas
-        document.getElementById('boletoSection').style.display = 'block';
-        dibujarBoleto(nombres, ticket.id);
-        
-        await sb.from('combinaciones_disponibles').update({ asignado: true }).eq('id', boleto.id);
-    }
+    // 2. Registrar en tickets
+    const { data: ticket, error: errInsert } = await sb.from('tickets').insert([{ 
+        buyer_name: nombre, 
+        buyer_email: email,
+        combination_id: boleto.id 
+    }]).select('id').single();
+    
+    if (errInsert) return alert("Error al registrar: " + errInsert.message);
 
-    function dibujarBoleto(nombres, ticketId) {
-        const canvas = document.getElementById('boletoCanvas');
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 500, 250);
-        
-        ctx.fillStyle = '#ff00ff'; ctx.font = 'bold 24px Arial';
-        ctx.fillText('BOLETO ICÓNICA', 20, 40);
-        
-        ctx.fillStyle = '#fff'; ctx.font = '16px Arial';
-        nombres.forEach((n, i) => ctx.fillText(`${i + 1}. ${n}`, 20, 80 + (i * 30)));
-        
-        ctx.fillStyle = '#666'; ctx.fillText(`Ticket #${ticketId}`, 400, 230);
-    }
+    // 3. Obtener nombres de las dragas para el dibujo
+    const { data: contendientes } = await sb.from('contendientes').select('nombre').in('id', boleto.combination_sorted);
+    const nombres = contendientes.map(c => c.nombre);
 
-    function descargarBoleto() {
-        const link = document.createElement('a');
-        link.download = 'boleto-iconica.png';
-        link.href = document.getElementById('boletoCanvas').toDataURL();
-        link.click();
-    }
+    // 4. AQUÍ ESTÁ EL CAMBIO: Llamamos a dibujarBoleto
+    dibujarBoleto(nombres, ticket.id);
+    
+    // 5. Marcar como asignado
+    await sb.from('combinaciones_disponibles').update({ asignado: true }).eq('id', boleto.id);
+    alert("¡Venta exitosa! ID Ticket: " + ticket.id);
+}
 
     cargarContendientes();
 </script>
