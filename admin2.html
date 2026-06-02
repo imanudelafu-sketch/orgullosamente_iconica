@@ -53,9 +53,9 @@
 
         // Usamos .contains para buscar el ID dentro del array de la tabla 'tickets'
         const { data, error } = await sb
-            .from('tickets')
-            .select('id, buyer_name, combination')
-            .contains('combination', [dragaId]);
+            .from('vista_combinaciones_nombres')
+            .select('combinacion_id, combination_sorted')
+            .contains('nombres_dragas', [dragaId]);
 
         if (error) {
             resDiv.innerHTML = "Error al buscar: " + error.message;
