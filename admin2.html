@@ -2,89 +2,51 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Buscador por ID - Icónica</title>
+    <title>Selector de ID - Icónica</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: sans-serif; background: #0f0f0f; color: #fff; padding: 40px; display: flex; justify-content: center; }
-        .container { background: #1a1a1a; padding: 30px; border-radius: 15px; width: 100%; max-width: 500px; }
-        select { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; }
-        button { width: 100%; padding: 15px; background: #ff00ff; border: none; color: white; font-weight: bold; border-radius: 8px; cursor: pointer; }
-        .resultado-item { padding: 10px; border-bottom: 1px solid #333; }
+        .container { background: #1a1a1a; padding: 30px; border-radius: 12px; width: 100%; max-width: 400px; text-align: center; }
+        select { width: 100%; padding: 12px; margin: 15px 0; border-radius: 6px; border: 1px solid #444; background: #222; color: white; }
+        #resultado { font-size: 1.5em; color: #ff00ff; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Buscador por ID de Draga</h2>
+    <h2>Selector de Draga</h2>
     
-    <select id="dragaSelect">
-        <option value="">Cargando dragas...</option>
+    <select id="dragaSelect" onchange="mostrarId()">
+        <option value="">Selecciona una Draga...</option>
     </select>
     
-    <button onclick="buscarPorId()">Buscar en Tickets</button>
-    <div id="resultado"></div>
+    <p>El ID seleccionado es:</p>
+    <div id="resultado">-</div>
 </div>
 
 <script>
     const sb = supabase.createClient('https://ctptnedwysxmlpzxujel.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g');
 
-    // 1. Cargar dragas (El valor será el ID)
     async function cargarContendientes() {
         const { data } = await sb.from('contendientes').select('id, nombre').eq('active', true);
         const select = document.getElementById('dragaSelect');
-        select.innerHTML = '<option value="">Elige una Draga...</option>';
+        
         if (data) {
             data.forEach(d => {
                 let opt = document.createElement('option');
-                opt.value = d.id; // Aquí guardamos el ID
-                opt.textContent = d.nombre; // Mostramos el nombre
+                opt.value = d.id; // Aquí el valor es el ID
+                opt.textContent = d.nombre; // Aquí el texto es el nombre
                 select.appendChild(opt);
             });
         }
     }
 
-    // 2. Buscar tickets donde el array 'combination' contenga el ID seleccionado
-   // 2. Buscar en la vista donde nombres_dragas contenga el ID
-async function buscarPorId() {
-    const dragaId = Number(document.getElementById('dragaSelect').value);
-    const resDiv = document.getElementById('resultado');
-    
-    if (!dragaId) return alert("Selecciona una draga primero");
-    resDiv.innerHTML = "Buscando...";
-
-    // NOTA: Como en la vista el campo es 'nombres_dragas' (texto), 
-    // buscamos el ID convirtiéndolo a texto o usando el nombre.
-    // Si quieres buscar por ID dentro de la vista, asegúrate de que 
-    // la vista tenga acceso a los IDs originales.
-    
-    // Si la vista solo tiene nombres, lo correcto es buscar por el nombre asociado al ID:
-    const nombreDraga = document.getElementById('dragaSelect').options[document.getElementById('dragaSelect').selectedIndex].text;
-
-    const { data, error } = await sb
-        .from('vista_combinaciones_nombres')
-        .select('combinacion_id, combination_sorted, nombres_dragas')
-        .ilike('nombres_dragas', `%${nombreDraga}%`); // Buscamos el nombre en el texto
-
-    if (error) {
-        resDiv.innerHTML = "Error al buscar: " + error.message;
-        return;
+    function mostrarId() {
+        const select = document.getElementById('dragaSelect');
+        const resDiv = document.getElementById('resultado');
+        resDiv.innerText = select.value ? select.value : "-";
     }
 
-    // Mostrar resultados
-    resDiv.innerHTML = `<h3>Resultados para ${nombreDraga}:</h3>`;
-    if (data && data.length > 0) {
-        data.forEach(t => {
-            resDiv.innerHTML += `
-                <div class="resultado-item">
-                    <strong>combinacion_id:</strong> ${t.combinacion_id} <br>
-                    <strong>combination_sorted:</strong> ${t.combination_sorted.join(", ")} <br>
-                    <strong>dragas:</strong> ${t.nombres_dragas} <br>
-                </div>`;
-        });
-    } else {
-        resDiv.innerHTML += "<p>No hay combinaciones registradas con esta draga.</p>";
-    }
-}
     cargarContendientes();
 </script>
 </body>
