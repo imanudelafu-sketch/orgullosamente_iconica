@@ -59,26 +59,43 @@
             }
         }
 
-        async function votar(id) {
+       async function votar(id) {
             try {
-                // 1. Obtener la IP y analizar seguridad usando un proveedor amigable con navegadores (ipwho.is)
-                const ipResponse = await fetch('https://ipwho.is/');
-                if (!ipResponse.ok) throw new Error("No se pudo conectar con el verificador de red.");
-                
-                const ipData = await ipResponse.json();
+                let usuarioIp = "";
+                let esVPN = false;
 
-                // Extraer la IP y revisar el estado de seguridad
-                const usuarioIp = ipData.ip;
-                // Verificamos si el sistema detecta que es una conexión enmascarada
-                const esVPN = ipData.security && (ipData.security.vpn || ipData.security.proxy || ipData.security.tor);
-
-                // 2. Bloqueo si se detecta VPN activa
-                if (esVPN) {
-                    alert("⚠️ Voto denegado: Hemos detectado el uso de una VPN o Proxy. Por favor, desactívala y usa tu red wifi o datos móviles para votar de forma justa.");
-                    return; // Detenemos el proceso aquí
+                // 1. Obtener la IP con el servicio más estable (Casi nunca es bloqueado)
+                try {
+                    const ipResponse = await fetch('https://api.ipify.org?format=json');
+                    if (!ipResponse.ok) throw new Error();
+                    const ipData = await ipResponse.json();
+                    usuarioIp = ipData.ip;
+                } catch (err) {
+                    // Si el navegador es extremadamente estricto, pedimos amablemente que bajen sus escudos
+                    throw new Error("Tu navegador está bloqueando la validación. Por favor, desactiva tu AdBlocker o navega en modo normal/público para votar.");
                 }
 
-                // 3. Llamar a la función inteligente de Supabase
+                // 2. Intentar detectar VPN de forma silenciosa
+                try {
+                    // Consultamos la IP específica. Si el navegador bloquea esto, el código sigue vivo.
+                    const vpnResponse = await fetch(`https://proxycheck.io/v2/${usuarioIp}?vpn=1`);
+                    if (vpnResponse.ok) {
+                        const vpnData = await vpnResponse.json();
+                        if (vpnData[usuarioIp] && vpnData[usuarioIp].proxy === "yes") {
+                            esVPN = true;
+                        }
+                    }
+                } catch (err) {
+                    console.warn("Filtro VPN bloqueado por el navegador local, se usará validación pura por IP.");
+                }
+
+                // 3. Detener si es 100% seguro que es una VPN
+                if (esVPN) {
+                    alert("⚠️ Voto denegado: Hemos detectado el uso de una VPN o Proxy. Por favor, desactívala y usa tu red local para votar de forma justa.");
+                    return; 
+                }
+
+                // 4. Llamar a Supabase para registrar el voto con esa IP
                 const { data: resultado, error } = await client.rpc('realizar_voto_ip', { 
                     row_id: id, 
                     user_ip: usuarioIp 
@@ -86,17 +103,17 @@
 
                 if (error) throw error;
 
-                // 4. Evaluar la respuesta devuelta por la base de datos
+                // 5. Evaluar la respuesta de la base de datos
                 if (resultado === 'DUPLICADO') {
                     alert("Ya se registró una votación desde esta red el día de hoy. ¡Vuelve mañana!");
                 } else if (resultado === 'OK') {
                     alert("¡Tu voto ha sido registrado con éxito!");
-                    cargar(); // Recargamos para actualizar los puntos
+                    cargar(); // Recargar para mostrar los nuevos puntos
                 }
 
             } catch (err) {
                 console.error("Detalle del error:", err);
-                alert("Error de validación técnico: " + err.message);
+                alert("Error técnico: " + err.message);
             }
         }
 
