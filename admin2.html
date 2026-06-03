@@ -78,38 +78,47 @@
         
         const { data: contendientes } = await sb.from('contendientes').select('id, nombre').in('id', boleto.combination_sorted);
         
-        // Mezclado estratégico (Favorita en la primera posición)
         let otrasReinas = contendientes.filter(c => c.id !== dragaId).map(c => c.nombre);
         otrasReinas = otrasReinas.sort(() => Math.random() - 0.5);
         const listaFinalNombres = [dragaNombreElegida, ...otrasReinas];
 
-        // Mensaje ajustado a Bingo
         const contenedorResultado = document.getElementById('resultadoVenta');
         contenedorResultado.innerHTML = `
             <h3>¡Venta Registrada!</h3>
             <p style="margin: 5px 0;"><strong>Ticket ID:</strong> ${ticket.id}</p>
-            <p style="margin: 5px 0; color:#ff00ff;">Imagen de Bingo Orgullosamente Icónica generada abajo.</p>
+            <p style="margin: 5px 0; color:#ff00ff;">Imagen de Bingo guardada en la nube y enviándose por correo...</p>
         `;
         contenedorResultado.style.display = 'block';
         
-        // Renderizar la tarjeta
+        // 1. Renderizar la tarjeta neón en el Canvas local
         dibujarBoletoImagen(listaFinalNombres, ticket.id);
+
+        // 2. NUEVO: Guardar la imagen automáticamente en Supabase Storage
+        const canvas = document.getElementById('boletoCanvas');
+        canvas.toBlob(async (blob) => {
+            const { error: errUpload } = await sb.storage
+                .from('boletos')
+                .upload(`${ticket.id}.png`, blob, { contentType: 'image/png', upsert: true });
+            
+            if (errUpload) {
+                console.error("Error guardando imagen en la nube:", errUpload.message);
+            } else {
+                console.log("¡Imagen respaldada exitosamente en Supabase Storage!");
+            }
+        }, 'image/png');
     }
 
     function dibujarBoletoImagen(listaReinas, ticketId) {
         const canvas = document.getElementById('boletoCanvas');
         const ctx = canvas.getContext('2d');
-
         ctx.shadowBlur = 0;
 
-        // 1. FONDO
         const gradienteFondo = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 50, canvas.width/2, canvas.height/2, 300);
         gradienteFondo.addColorStop(0, '#260026'); 
         gradienteFondo.addColorStop(1, '#070708'); 
         ctx.fillStyle = gradienteFondo;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 2. MARCO DOBLE NEÓN
         ctx.strokeStyle = '#ff00ff';
         ctx.lineWidth = 3;
         ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
@@ -117,7 +126,6 @@
         ctx.lineWidth = 1;
         ctx.strokeRect(14, 14, canvas.width - 28, canvas.height - 28);
 
-        // 3. LOGO PRINCIPAL CON GLOW NEÓN
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 24px "Segoe UI", sans-serif';
         ctx.textAlign = 'center'; 
@@ -125,28 +133,23 @@
         ctx.shadowBlur = 10;
         ctx.fillText('ORGULLOSAMENTE ICÓNICA', canvas.width / 2, 50);
         
-        // Subtítulo
         ctx.shadowBlur = 0; 
         ctx.fillStyle = '#8a8a8a';
         ctx.font = 'bold 12px "Segoe UI", sans-serif';
         ctx.fillText('TARJETA OFICIAL DE BINGO', canvas.width / 2, 72);
 
-        // 4. SUBTÍTULO DE LA COMBINACIÓN
         ctx.fillStyle = '#e0e0e0';
         ctx.font = 'bold 14px "Segoe UI", sans-serif';
         ctx.textAlign = 'left';
         ctx.fillText('TU COMBINACIÓN DE REINAS:', 40, 115);
 
-        // 5. LISTA DE REINAS
         let yInicial = 155;
         listaReinas.forEach((reina, index) => {
             if (index === 0) {
-                // Cápsula brillante para la favorita
                 ctx.fillStyle = 'rgba(255, 0, 255, 0.25)';
                 ctx.beginPath();
                 ctx.roundRect(40, yInicial - 18, 400, 26, 6);
                 ctx.fill();
-
                 ctx.strokeStyle = '#ff00ff';
                 ctx.lineWidth = 1;
                 ctx.stroke();
@@ -165,8 +168,6 @@
             yInicial += 30; 
         });
 
-        // 6. SECCIÓN INFERIOR: TICKET ID HORIZONTAL
-        // Agregamos una sutil línea separadora arriba del ID
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -177,7 +178,6 @@
         ctx.fillStyle = '#ff00ff';
         ctx.font = 'bold 12px monospace';
         ctx.textAlign = 'center';
-        // Colocamos el ID completamente centrado y horizontal
         ctx.fillText('TICKET ID: ' + ticketId.toUpperCase(), canvas.width / 2, 348);
 
         document.getElementById('boletoSection').style.display = 'block';
