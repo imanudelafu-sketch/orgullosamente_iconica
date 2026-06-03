@@ -41,40 +41,41 @@
         });
     }
 
-  async function registrarTicket() {
-    const nombre = document.getElementById('nombreCliente').value;
-    const email = document.getElementById('emailCliente').value;
-    const dragaId = Number(document.getElementById('dragaSelect').value);
+    async function registrarTicket() {
+        const nombre = document.getElementById('nombreCliente').value;
+        const email = document.getElementById('emailCliente').value;
+        const dragaId = Number(document.getElementById('dragaSelect').value);
 
-    if (!nombre || !email || !dragaId) return alert("Completa todos los campos.");
+        if (!nombre || !email || !dragaId) return alert("Completa todos los campos.");
 
-    // 1. La función RPC ahora busca Y marca como asignado en un solo paso
-    const { data: boletos, error: errFetch } = await sb.rpc('marcar_y_obtener_boleto', { p_draga_id: dragaId });
+        // 1. Buscar y apartar boleto disponible mediante la función RPC de Supabase
+        const { data: boletos, error: errFetch } = await sb.rpc('marcar_y_obtener_boleto', { p_draga_id: dragaId });
 
-    if (errFetch || !boletos || boletos.length === 0) {
-        return alert("¡No hay boletos disponibles para esa draga!");
+        if (errFetch || !boletos || boletos.length === 0) {
+            return alert("¡No hay boletos disponibles para esa draga!");
+        }
+
+        const boleto = boletos[0];
+
+        // 2. CORREGIDO: Registrar el ticket incluyendo la columna obligatoria favorite_drag_id
+        const { data: ticket, error: errInsert } = await sb.from('tickets').insert([{ 
+            buyer_name: nombre, 
+            buyer_email: email,
+            combination_id: boleto.id,
+            favorite_drag_id: dragaId // Enlazamos el ID numérico de la reina para su comisión
+        }]).select('id').single();
+        
+        if (errInsert) return alert("Error al registrar ticket: " + errInsert.message);
+        
+        // 3. Obtener nombres de las reinas que componen este boleto y dibujar en el Canvas
+        const { data: contendientes } = await sb.from('contendientes').select('nombre').in('id', boleto.combination_sorted);
+        const nombres = contendientes.map(c => c.nombre);
+
+        // Aquí puedes descomentar o invocar tu función para procesar la imagen del boleto
+        // dibujarBoleto(nombres, ticket.id);
+        
+        alert("¡Venta exitosa! Boleto asignado: " + boleto.id);
     }
-
-    const boleto = boletos[0];
-
-    // 2. Registrar el ticket
-    const { data: ticket, error: errInsert } = await sb.from('tickets').insert([{ 
-        buyer_name: nombre, 
-        buyer_email: email,
-        combination_id: boleto.id 
-    }]).select('id').single();
-    
-    if (errInsert) return alert("Error al registrar ticket: " + errInsert.message);
-
-    // 3. Ya no necesitas hacer el UPDATE aquí, ¡la función RPC ya lo hizo!
-    
-    // 4. Obtener nombres y dibujar
-    const { data: contendientes } = await sb.from('contendientes').select('nombre').in('id', boleto.combination_sorted);
-    const nombres = contendientes.map(c => c.nombre);
-
-    dibujarBoleto(nombres, ticket.id);
-    alert("¡Venta exitosa! Boleto asignado: " + boleto.id);
-}
 
     cargarContendientes();
 </script>
