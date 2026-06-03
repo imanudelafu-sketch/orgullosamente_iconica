@@ -1,0 +1,39 @@
+<head>
+    <!-- Agrega esto después de tus otros scripts -->
+    <script src="https://www.google.com/recaptcha/api.js?render=TU_SITE_KEY"></script>
+</head>
+
+<script>
+    const SITE_KEY = 'TU_SITE_KEY'; // Obtén esto en la consola de Google reCAPTCHA
+
+    async function votar(id) {
+        // 1. Pedir el token a Google
+        grecaptcha.ready(function() {
+            grecaptcha.execute(SITE_KEY, {action: 'votar'}).then(async function(token) {
+                
+                // 2. Enviar el token a tu lógica de votación
+                await procesarVoto(id, token);
+            });
+        });
+    }
+
+    async function procesarVoto(id, token) {
+        const hoy = new Date().toDateString();
+        if (localStorage.getItem('voto_' + hoy)) return alert("Ya votaste hoy.");
+
+        // 3. Llamada al backend
+        // AQUÍ DEBES ENVIAR EL TOKEN A UNA EDGE FUNCTION DE SUPABASE 
+        // PARA QUE ELLA LO VALIDE CON LA 'SECRET KEY' DE GOOGLE
+        const { error } = await supabase.functions.invoke('validar-voto', {
+            body: { row_id: id, recaptcha_token: token }
+        });
+
+        if (!error) {
+            localStorage.setItem('voto_' + hoy, 'true');
+            alert("¡Voto registrado!");
+            cargar();
+        } else {
+            alert("Voto sospechoso bloqueado.");
+        }
+    }
+</script>
