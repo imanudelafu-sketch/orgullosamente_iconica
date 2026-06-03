@@ -1,135 +1,395 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
+
 <html lang="es">
+
 <head>
+
     <meta charset="UTF-8">
+
     <title>Admin - Icónica Drag Virtual</title>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
+
         body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: #fff; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { background: #1a1a1a; padding: 25px; border-radius: 15px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+
+        .container { background: #1a1a1a; padding: 20px; border-radius: 15px; width: 100%; max-width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+
         input, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; box-sizing: border-box; }
+
         button { width: 100%; padding: 15px; background: linear-gradient(45deg, #ff00ff, #aa00aa); border: none; color: white; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 10px; transition: transform 0.2s; }
+
         button:hover { transform: scale(1.02); }
+
         
+
+        /* Mantenemos esta sección oculta de forma permanente */
+
         #boletoSection { display: none; }
-        canvas { border-radius: 12px; box-shadow: 0 0 20px rgba(255, 0, 255, 0.4); }
+
+        canvas { border-radius: 12px; box-shadow: 0 0 20px rgba(255, 0, 255, 0.4); margin-bottom: 15px; }
+
         
-        .resumen-venta { display: none; background: #222; padding: 15px; border-radius: 10px; border-left: 5px solid #ff00ff; margin-top: 20px; }
+
+        .resumen-venta { display: none; background: #222; padding: 15px; border-radius: 10px; border-left: 5px solid #ff00ff; margin-top: 20px; width: 100%; box-sizing: border-box; }
+
         .resumen-venta h3 { margin-top: 0; color: #ff00ff; }
+
     </style>
+
 </head>
+
 <body>
 
+
+
 <div class="container">
+
     <h2>Registrar Venta</h2>
+
     <input type="text" id="nombreCliente" placeholder="Nombre del Cliente">
+
     <input type="email" id="emailCliente" placeholder="Correo electrónico">
-    
-    <label>Tipo de Venta:</label>
-    <select id="tipoVenta" onchange="toggleDragaSelect()">
-        <option value="produccion">Venta de Producción ($100)</option>
-        <option value="participante">Apoyo a Participante</option>
-    </select>
 
-    <div id="wrapperDraga" style="display:none;">
-        <label>Seleccionar Participante:</label>
-        <select id="dragaSelect"></select>
-    </div>
+    <select id="dragaSelect"></select>
 
-    <button onclick="registrarTicket()">Procesar Venta</button>
+    <button onclick="registrarTicket()">Guardar Ticket y Generar Boleto</button>
+
+
+
     <div id="resultadoVenta" class="resumen-venta"></div>
+
 </div>
 
-<div id="boletoSection"><canvas id="boletoCanvas" width="480" height="370"></canvas></div>
+
+
+<div id="boletoSection">
+
+    <canvas id="boletoCanvas" width="480" height="370"></canvas>
+
+</div>
+
+
 
 <script>
+
     const sb = supabase.createClient('https://ctptnedwysxmlpzxujel.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cHRuZWR3eXN4bWxwenh1amVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Njc5ODgsImV4cCI6MjA5MzM0Mzk4OH0.M_Jz_QfTJuKsGbNqnayvCGXkX_6tVxF42-LA8w0FH_g');
 
+
+
     async function cargarContendientes() {
+
         const { data } = await sb.from('contendientes').select('id, nombre').eq('active', true);
+
         const select = document.getElementById('dragaSelect');
+
         data.forEach(d => {
+
             let opt = document.createElement('option');
+
             opt.value = d.id; opt.textContent = d.nombre;
+
             select.appendChild(opt);
+
         });
+
     }
 
-    function toggleDragaSelect() {
-        const tipo = document.getElementById('tipoVenta').value;
-        document.getElementById('wrapperDraga').style.display = (tipo === 'participante') ? 'block' : 'none';
-    }
+
 
     async function registrarTicket() {
-        const nombre = document.getElementById('nombreCliente').value;
-        const email = document.getElementById('emailCliente').value;
-        const tipo = document.getElementById('tipoVenta').value;
-        
-        // 1. Determinar ID de draga según el tipo de venta
-        let dragaId;
-        let dragaNombreElegida;
 
-        if (tipo === 'produccion') {
-            const { data } = await sb.from('contendientes').select('id, nombre').is('active', null).limit(1);
-            if (!data || data.length === 0) return alert("No hay contendientes de producción configurados.");
-            dragaId = data[0].id;
-            dragaNombreElegida = "Venta Producción";
-        } else {
-            const select = document.getElementById('dragaSelect');
-            dragaId = Number(select.value);
-            dragaNombreElegida = select.options[select.selectedIndex].text;
+        const nombre = document.getElementById('nombreCliente').value;
+
+        const email = document.getElementById('emailCliente').value;
+
+        
+
+        const selectDraga = document.getElementById('dragaSelect');
+
+        const dragaId = Number(selectDraga.value);
+
+        const dragaNombreElegida = selectDraga.options[selectDraga.selectedIndex].text;
+
+
+
+        if (!nombre || !email || !dragaId) return alert("Completa todos los campos.");
+
+
+
+        document.getElementById('resultadoVenta').style.display = 'none';
+
+
+
+        const { data: boletos, error: errFetch } = await sb.rpc('marcar_y_obtener_boleto', { p_draga_id: dragaId });
+
+
+
+        if (errFetch || !boletos || boletos.length === 0) {
+
+            return alert("¡No hay boletos disponibles para esa draga!");
+
         }
 
-        if (!nombre || !email) return alert("Completa nombre y correo.");
 
-        // 2. Obtener boleto y preparar datos
-        const { data: boletos, error: errFetch } = await sb.rpc('marcar_y_obtener_boleto', { p_draga_id: dragaId });
-        if (errFetch || !boletos) return alert("¡No hay boletos disponibles!");
 
         const boleto = boletos[0];
+
         const ticketId = crypto.randomUUID();
 
-        // 3. Obtener nombres para la imagen
+
+
         const { data: contendientes } = await sb.from('contendientes').select('id, nombre').in('id', boleto.combination_sorted);
+
         let otrasReinas = contendientes.filter(c => c.id !== dragaId).map(c => c.nombre);
+
         otrasReinas = otrasReinas.sort(() => Math.random() - 0.5);
+
         const listaFinalNombres = [dragaNombreElegida, ...otrasReinas];
+
+
+
+        // 1. Dibuja en el Canvas invisible
 
         dibujarBoletoImagen(listaFinalNombres, ticketId);
 
-        // 4. Subir imagen y registrar (La inserción activa el Webhook del correo)
+
+
+        // 2. Sube la imagen a Supabase
+
         const canvas = document.getElementById('boletoCanvas');
+
         canvas.toBlob(async (blob) => {
-            await sb.storage.from('boletos').upload(`${ticketId}.png`, blob, { contentType: 'image/png' });
 
-            await sb.from('tickets').insert([{ 
-                id: ticketId, buyer_name: nombre, buyer_email: email,
-                combination_id: boleto.id, favorite_drag_id: dragaId 
-            }]);
+            const { error: errUpload } = await sb.storage
 
-            if (tipo === 'produccion') {
-                await sb.from('ventas_produccion').insert([{ ticket_id: ticketId, monto: 100 }]);
+                .from('boletos')
+
+                .upload(`${ticketId}.png`, blob, { contentType: 'image/png', upsert: true });
+
+            
+
+            if (errUpload) {
+
+                console.error("Error subiendo:", errUpload);
+
+                return alert("Hubo un error subiendo la imagen a la nube.");
+
             }
 
-            document.getElementById('resultadoVenta').innerHTML = `<h3>¡Venta Registrada Exitosamente!</h3><p>ID: ${ticketId}</p>`;
-            document.getElementById('resultadoVenta').style.display = 'block';
+
+
+            // 3. Registra en Base de Datos (Activa el Email)
+
+            const { error: errInsert } = await sb.from('tickets').insert([{ 
+
+                id: ticketId,
+
+                buyer_name: nombre, 
+
+                buyer_email: email,
+
+                combination_id: boleto.id,
+
+                favorite_drag_id: dragaId 
+
+            }]);
+
+            
+
+            if (errInsert) return alert("Error al registrar ticket: " + errInsert.message);
+
+
+
+            // 4. Muestra SÓLO la tarjeta de éxito
+
+            const contenedorResultado = document.getElementById('resultadoVenta');
+
+            contenedorResultado.innerHTML = `
+
+                <h3>¡Venta Registrada Exitosamente!</h3>
+
+                <p style="margin: 5px 0;"><strong>Ticket ID:</strong> ${ticketId}</p>
+
+                <p style="margin: 5px 0; color:#ff00ff;">Imagen de Bingo guardada en la nube y correo enviado a ${email}.</p>
+
+            `;
+
+            contenedorResultado.style.display = 'block';
+
+
+
+            // Opcional: Limpiar el formulario para la siguiente venta
+
             document.getElementById('nombreCliente').value = '';
+
             document.getElementById('emailCliente').value = '';
+
+
+
         }, 'image/png');
+
     }
+
+
 
     function dibujarBoletoImagen(listaReinas, ticketId) {
-        // ... (Tu función de dibujo se mantiene igual) ...
+
         const canvas = document.getElementById('boletoCanvas');
+
         const ctx = canvas.getContext('2d');
+
+        ctx.shadowBlur = 0;
+
+
+
         const gradienteFondo = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 50, canvas.width/2, canvas.height/2, 300);
-        gradienteFondo.addColorStop(0, '#260026'); gradienteFondo.addColorStop(1, '#070708'); 
+
+        gradienteFondo.addColorStop(0, '#260026'); 
+
+        gradienteFondo.addColorStop(1, '#070708'); 
+
         ctx.fillStyle = gradienteFondo;
+
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        // [resto de tu lógica de dibujo...]
+
+
+
+        ctx.strokeStyle = '#ff00ff';
+
+        ctx.lineWidth = 3;
+
+        ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+
+        ctx.strokeStyle = '#ffffff';
+
+        ctx.lineWidth = 1;
+
+        ctx.strokeRect(14, 14, canvas.width - 28, canvas.height - 28);
+
+
+
+        ctx.fillStyle = '#ffffff';
+
+        ctx.font = 'bold 24px "Segoe UI", sans-serif';
+
+        ctx.textAlign = 'center'; 
+
+        ctx.shadowColor = '#ff00ff';
+
+        ctx.shadowBlur = 10;
+
+        ctx.fillText('ORGULLOSAMENTE ICÓNICA', canvas.width / 2, 50);
+
+        
+
+        ctx.shadowBlur = 0; 
+
+        ctx.fillStyle = '#8a8a8a';
+
+        ctx.font = 'bold 12px "Segoe UI", sans-serif';
+
+        ctx.fillText('TARJETA OFICIAL DE BINGO', canvas.width / 2, 72);
+
+
+
+        ctx.fillStyle = '#e0e0e0';
+
+        ctx.font = 'bold 14px "Segoe UI", sans-serif';
+
+        ctx.textAlign = 'left';
+
+        ctx.fillText('TU COMBINACIÓN DE REINAS:', 40, 115);
+
+
+
+        let yInicial = 155;
+
+        listaReinas.forEach((reina, index) => {
+
+            if (index === 0) {
+
+                ctx.fillStyle = 'rgba(255, 0, 255, 0.25)';
+
+                ctx.beginPath();
+
+                ctx.roundRect(40, yInicial - 18, 400, 26, 6);
+
+                ctx.fill();
+
+                ctx.strokeStyle = '#ff00ff';
+
+                ctx.lineWidth = 1;
+
+                ctx.stroke();
+
+
+
+                ctx.fillStyle = '#ffffff';
+
+                ctx.font = 'bold 14px "Segoe UI", sans-serif';
+
+                ctx.shadowColor = '#ff00ff';
+
+                ctx.shadowBlur = 8;
+
+                ctx.fillText('👑 ' + reina.toUpperCase() + ' (Favorita)', 52, yInicial);
+
+                ctx.shadowBlur = 0; 
+
+            } else {
+
+                ctx.fillStyle = '#b3b3b3';
+
+                ctx.font = '14px "Segoe UI", sans-serif';
+
+                ctx.fillText('• ' + reina.toUpperCase(), 52, yInicial);
+
+            }
+
+            yInicial += 30; 
+
+        });
+
+
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+
+        ctx.lineWidth = 1;
+
+        ctx.beginPath();
+
+        ctx.moveTo(40, 325);
+
+        ctx.lineTo(canvas.width - 40, 325);
+
+        ctx.stroke();
+
+
+
+        ctx.fillStyle = '#ff00ff';
+
+        ctx.font = 'bold 12px monospace';
+
+        ctx.textAlign = 'center';
+
+        ctx.fillText('TICKET ID: ' + ticketId.toUpperCase(), canvas.width / 2, 348);
+
+
+
+        // ¡Esta es la línea que eliminamos!
+
+        // document.getElementById('boletoSection').style.display = 'block';
+
     }
 
+
+
     cargarContendientes();
+
 </script>
+
 </body>
-</html>
+
+</html> 
