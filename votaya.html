@@ -61,20 +61,21 @@
 
         async function votar(id) {
             try {
-                // 1. Obtener la IP y analizar si es una VPN/Proxy usando proxycheck
-                const ipResponse = await fetch('https://proxycheck.io/v2/?vpn=1');
-                if (!ipResponse.ok) throw new Error("No se pudo conectar con el verificador de IP de seguridad.");
+                // 1. Obtener la IP y analizar seguridad usando un proveedor amigable con navegadores (ipwho.is)
+                const ipResponse = await fetch('https://ipwho.is/');
+                if (!ipResponse.ok) throw new Error("No se pudo conectar con el verificador de red.");
                 
                 const ipData = await ipResponse.json();
 
-                // Extraer la IP del objeto de respuesta (ignorando el estado)
-                const usuarioIp = Object.keys(ipData).find(key => key !== "status");
-                const detallesRed = ipData[usuarioIp];
+                // Extraer la IP y revisar el estado de seguridad
+                const usuarioIp = ipData.ip;
+                // Verificamos si el sistema detecta que es una conexión enmascarada
+                const esVPN = ipData.security && (ipData.security.vpn || ipData.security.proxy || ipData.security.tor);
 
                 // 2. Bloqueo si se detecta VPN activa
-                if (detallesRed && detallesRed.proxy === "yes") {
-                    alert("⚠️ Voto denegado: Hemos detectado el uso de una VPN o Proxy. Por favor, desactívala y usa tu red local o datos móviles para votar de forma justa.");
-                    return; 
+                if (esVPN) {
+                    alert("⚠️ Voto denegado: Hemos detectado el uso de una VPN o Proxy. Por favor, desactívala y usa tu red wifi o datos móviles para votar de forma justa.");
+                    return; // Detenemos el proceso aquí
                 }
 
                 // 3. Llamar a la función inteligente de Supabase
@@ -90,12 +91,11 @@
                     alert("Ya se registró una votación desde esta red el día de hoy. ¡Vuelve mañana!");
                 } else if (resultado === 'OK') {
                     alert("¡Tu voto ha sido registrado con éxito!");
-                    cargar(); 
+                    cargar(); // Recargamos para actualizar los puntos
                 }
 
             } catch (err) {
                 console.error("Detalle del error:", err);
-                // Esta línea nos dirá el diagnóstico real si algo sale mal en el servidor o cliente
                 alert("Error de validación técnico: " + err.message);
             }
         }
