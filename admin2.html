@@ -10,9 +10,8 @@
         input, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; box-sizing: border-box; }
         button { width: 100%; padding: 15px; background: #ff00ff; border: none; color: white; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 10px; }
         #boletoSection { margin-top: 30px; display: none; text-align: center; }
-        canvas { border: 2px solid #ff00ff; border-radius: 10px; background: #000; }
+        canvas { border: 2px solid #ff00ff; border-radius: 10px; background: #000; margin-bottom: 15px; }
         
-        /* Nuevo estilo para mostrar el resumen de la combinación */
         .resumen-venta { display: none; background: #222; padding: 15px; border-radius: 10px; border-left: 5px solid #ff00ff; margin-top: 20px; width: 100%; box-sizing: border-box; }
         .resumen-venta h3 { margin-top: 0; color: #ff00ff; }
         .resumen-venta ul { padding-left: 20px; margin: 5px 0 0 0; }
@@ -32,7 +31,7 @@
 </div>
 
 <div id="boletoSection">
-    <canvas id="boletoCanvas" width="500" height="250"></canvas>
+    <canvas id="boletoCanvas" width="500" height="280"></canvas>
     <button onclick="descargarBoleto()" style="background: #33cc33;">Descargar Boleto PNG</button>
 </div>
 
@@ -52,14 +51,15 @@
     async function registrarTicket() {
         const nombre = document.getElementById('nombreCliente').value;
         const email = document.getElementById('emailCliente').value;
-        const dragaId = Number(document.getElementById('dragaSelect').value);
+        
+        const selectDraga = document.getElementById('dragaSelect');
+        const dragaId = Number(selectDraga.value);
+        const dragaNombreElegida = selectDraga.options[selectDraga.selectedIndex].text;
 
         if (!nombre || !email || !dragaId) return alert("Completa todos los campos.");
 
-        // Ocultar resumen anterior si existía
         document.getElementById('resultadoVenta').style.display = 'none';
 
-        // 1. Buscar y apartar boleto disponible mediante la función RPC de Supabase
         const { data: boletos, error: errFetch } = await sb.rpc('marcar_y_obtener_boleto', { p_draga_id: dragaId });
 
         if (errFetch || !boletos || boletos.length === 0) {
@@ -68,7 +68,6 @@
 
         const boleto = boletos[0];
 
-        // 2. Registrar el ticket incluyendo la columna obligatoria favorite_drag_id
         const { data: ticket, error: errInsert } = await sb.from('tickets').insert([{ 
             buyer_name: nombre, 
             buyer_email: email,
@@ -78,26 +77,94 @@
         
         if (errInsert) return alert("Error al registrar ticket: " + errInsert.message);
         
-        // 3. MEJORADO: Obtener tanto el ID como el NOMBRE de las reinas de la combinación
         const { data: contendientes } = await sb.from('contendientes').select('id, nombre').in('id', boleto.combination_sorted);
         
-        // Construir la lista de texto para la alerta y la interfaz
-        const listaTextoAlerta = contendientes.map(c => `• ID ${c.id}: ${c.nombre}`).join('\n');
-        const listaHTML = contendientes.map(c => `<li><strong>ID ${c.id}:</strong> ${c.nombre}</li>`).join('');
+        // --- LÓGICA DE ORDENAMIENTO (Seleccionada al inicio, el resto aleatorio) ---
+        // 1. Quitamos a la seleccionada del grupo
+        let otrasReinas = contendientes.filter(c => c.id !== dragaId).map(c => c.nombre);
+        // 2. Mezclamos a las 5 restantes
+        otrasReinas = otrasReinas.sort(() => Math.random() - 0.5);
+        // 3. Juntamos todo poniendo a la seleccionada en el índice 0
+        const listaFinalNombres = [dragaNombreElegida, ...otrasReinas];
 
-        // 4. Inyectar el resumen visual en el HTML
+        // Llenar el resumen HTML
+        const listaHTML = listaFinalNombres.map((nombre, index) => {
+            if(index === 0) return `<li><strong style="color:#ff00ff;">★ ${nombre}</strong> (Seleccionada)</li>`;
+            return `<li>• ${nombre}</li>`;
+        }).join('');
+
         const contenedorResultado = document.getElementById('resultadoVenta');
         contenedorResultado.innerHTML = `
             <h3>¡Venta Registrada Exitosamente!</h3>
             <p style="margin: 5px 0;"><strong>Ticket ID:</strong> ${ticket.id}</p>
-            <p style="margin: 5px 0;"><strong>Boleto No:</strong> ${boleto.id}</p>
             <p style="margin: 10px 0 0 0;"><strong>Combinación de Reinas:</strong></p>
-            <ul>${listaHTML}</ul>
+            <ul style="list-style: none; padding-left: 0;">${listaHTML}</ul>
         `;
         contenedorResultado.style.display = 'block';
         
-        // Alerta informativa final
-        alert(`¡Venta exitosa!\nBoleto asignado: ${boleto.id}\n\nReinas en el boleto:\n${listaTextoAlerta}`);
+        // Disparar la generación de la imagen
+        dibujarBoletoImagen(listaFinalNombres, ticket.id);
+    }
+
+    // --- LÓGICA DE GENERACIÓN DE IMAGEN EN CANVAS ---
+    function dibujarBoletoImagen(listaReinas, ticketId) {
+        const canvas = document.getElementById('boletoCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Fondo negro
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Borde neón
+        ctx.strokeStyle = '#ff00ff';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+
+        // Título principal
+        ctx.fillStyle = '#ff00ff';
+        ctx.font = 'bold 22px "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('¡Venta Registrada Exitosamente!', canvas.width / 2, 35);
+
+        // Ticket ID
+        ctx.fillStyle = '#aaaaaa';
+        ctx.font = '14px monospace';
+        ctx.fillText('Ticket ID: ' + ticketId, canvas.width / 2, 60);
+
+        // Subtítulo
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 18px "Segoe UI", sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('Combinación de Reinas:', 30, 100);
+
+        // Lista de Reinas
+        let y = 130;
+        listaReinas.forEach((reina, index) => {
+            if (index === 0) {
+                // La reina seleccionada va en rosa y con estrella
+                ctx.fillStyle = '#ff00ff';
+                ctx.font = 'bold 16px "Segoe UI", sans-serif';
+                ctx.fillText('★ ' + reina, 30, y);
+            } else {
+                // El resto de la mezcla aleatoria va en blanco
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '16px "Segoe UI", sans-serif';
+                ctx.fillText('• ' + reina, 30, y);
+            }
+            y += 24; // Espaciado entre nombres
+        });
+
+        // Mostrar la sección del canvas y el botón de descarga
+        document.getElementById('boletoSection').style.display = 'block';
+    }
+
+    // --- FUNCIÓN PARA DESCARGAR LA IMAGEN ---
+    function descargarBoleto() {
+        const canvas = document.getElementById('boletoCanvas');
+        const enlace = document.createElement('a');
+        enlace.download = 'Boleto_Iconico.png';
+        enlace.href = canvas.toDataURL('image/png');
+        enlace.click();
     }
 
     cargarContendientes();
