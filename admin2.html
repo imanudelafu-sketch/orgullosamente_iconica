@@ -11,6 +11,12 @@
         button { width: 100%; padding: 15px; background: #ff00ff; border: none; color: white; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 10px; }
         #boletoSection { margin-top: 30px; display: none; text-align: center; }
         canvas { border: 2px solid #ff00ff; border-radius: 10px; background: #000; }
+        
+        /* Nuevo estilo para mostrar el resumen de la combinación */
+        .resumen-venta { display: none; background: #222; padding: 15px; border-radius: 10px; border-left: 5px solid #ff00ff; margin-top: 20px; width: 100%; box-sizing: border-box; }
+        .resumen-venta h3 { margin-top: 0; color: #ff00ff; }
+        .resumen-venta ul { padding-left: 20px; margin: 5px 0 0 0; }
+        .resumen-venta li { margin: 4px 0; color: #ccc; }
     </style>
 </head>
 <body>
@@ -21,6 +27,8 @@
     <input type="email" id="emailCliente" placeholder="Correo electrónico">
     <select id="dragaSelect"></select>
     <button onclick="registrarTicket()">Guardar Ticket y Generar Boleto</button>
+
+    <div id="resultadoVenta" class="resumen-venta"></div>
 </div>
 
 <div id="boletoSection">
@@ -48,7 +56,10 @@
 
         if (!nombre || !email || !dragaId) return alert("Completa todos los campos.");
 
-        // 1. Buscar y apartar boleto
+        // Ocultar resumen anterior si existía
+        document.getElementById('resultadoVenta').style.display = 'none';
+
+        // 1. Buscar y apartar boleto disponible mediante la función RPC de Supabase
         const { data: boletos, error: errFetch } = await sb.rpc('marcar_y_obtener_boleto', { p_draga_id: dragaId });
 
         if (errFetch || !boletos || boletos.length === 0) {
@@ -57,28 +68,38 @@
 
         const boleto = boletos[0];
 
-        // 🚨 RAYOS X: Esto nos confirmará que el navegador ya está usando el código nuevo
-        console.log("PAYLOAD A ENVIAR:", { buyer_name: nombre, buyer_email: email, combination_id: boleto.id, favorite_drag_id: dragaId });
-        // alert("Diagnóstico: El ID de la reina seleccionada es el número: " + dragaId);
-
-        // 2. Registrar el ticket
+        // 2. Registrar el ticket incluyendo la columna obligatoria favorite_drag_id
         const { data: ticket, error: errInsert } = await sb.from('tickets').insert([{ 
             buyer_name: nombre, 
             buyer_email: email,
             combination_id: boleto.id,
-            favorite_drag_id: dragaId // Aquí va el número forzoso
+            favorite_drag_id: dragaId 
         }]).select('id').single();
         
-        if (errInsert) {
-            return alert("Error al registrar ticket: " + errInsert.message);
-        }
+        if (errInsert) return alert("Error al registrar ticket: " + errInsert.message);
         
-        // 3. Obtener nombres para dibujar
-        const { data: contendientes } = await sb.from('contendientes').select('nombre').in('id', boleto.combination_sorted);
-        const nombres = contendientes.map(c => c.nombre);
+        // 3. MEJORADO: Obtener tanto el ID como el NOMBRE de las reinas de la combinación
+        const { data: contendientes } = await sb.from('contendientes').select('id, nombre').in('id', boleto.combination_sorted);
+        
+        // Construir la lista de texto para la alerta y la interfaz
+        const listaTextoAlerta = contendientes.map(c => `• ID ${c.id}: ${c.nombre}`).join('\n');
+        const listaHTML = contendientes.map(c => `<li><strong>ID ${c.id}:</strong> ${c.nombre}</li>`).join('');
 
-        alert("¡Venta exitosa! Boleto asignado: " + boleto.id);
+        // 4. Inyectar el resumen visual en el HTML
+        const contenedorResultado = document.getElementById('resultadoVenta');
+        contenedorResultado.innerHTML = `
+            <h3>¡Venta Registrada Exitosamente!</h3>
+            <p style="margin: 5px 0;"><strong>Ticket ID:</strong> ${ticket.id}</p>
+            <p style="margin: 5px 0;"><strong>Boleto No:</strong> ${boleto.id}</p>
+            <p style="margin: 10px 0 0 0;"><strong>Combinación de Reinas:</strong></p>
+            <ul>${listaHTML}</ul>
+        `;
+        contenedorResultado.style.display = 'block';
+        
+        // Alerta informativa final
+        alert(`¡Venta exitosa!\nBoleto asignado: ${boleto.id}\n\nReinas en el boleto:\n${listaTextoAlerta}`);
     }
+
     cargarContendientes();
 </script>
 </body>
