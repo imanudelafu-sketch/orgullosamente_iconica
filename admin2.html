@@ -30,8 +30,8 @@
 </div>
 
 <div id="boletoSection">
-    <canvas id="boletoCanvas" width="550" height="380"></canvas>
-    <button onclick="descargarBoleto()" style="background: linear-gradient(45deg, #2eb82e, #1f7a1f); width: auto; padding: 12px 30px;">Descargar Boleto PNG</button>
+    <canvas id="boletoCanvas" width="480" height="360"></canvas>
+    <button onclick="descargarBoleto()" style="background: linear-gradient(45deg, #2eb82e, #1f7a1f); width: auto; padding: 12px 30px;">Descargar Tarjeta PNG</button>
 </div>
 
 <script>
@@ -78,21 +78,21 @@
         
         const { data: contendientes } = await sb.from('contendientes').select('id, nombre').in('id', boleto.combination_sorted);
         
-        // Separación y ordenamiento aleatorio
+        // Mezclado estratégico (Favorita en la primera posición)
         let otrasReinas = contendientes.filter(c => c.id !== dragaId).map(c => c.nombre);
         otrasReinas = otrasReinas.sort(() => Math.random() - 0.5);
         const listaFinalNombres = [dragaNombreElegida, ...otrasReinas];
 
-        // Mostrar confirmación rápida en la interfaz
+        // CORREGIDO: Mensaje en interfaz modificado según la instrucción
         const contenedorResultado = document.getElementById('resultadoVenta');
         contenedorResultado.innerHTML = `
             <h3>¡Venta Registrada!</h3>
             <p style="margin: 5px 0;"><strong>Ticket ID:</strong> ${ticket.id}</p>
-            <p style="margin: 5px 0; color:#ff00ff;">Imagen de pase VIP generada abajo.</p>
+            <p style="margin: 5px 0; color:#ff00ff;">Imagen de Bingo Orgullosamente Icónica generada abajo.</p>
         `;
         contenedorResultado.style.display = 'block';
         
-        // Renderizar el nuevo diseño premium
+        // Renderizar la tarjeta con los nuevos cambios estéticos
         dibujarBoletoImagen(listaFinalNombres, ticket.id);
     }
 
@@ -100,27 +100,17 @@
         const canvas = document.getElementById('boletoCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Resetear efectos por si acaso
+        // Limpiar efectos previos
         ctx.shadowBlur = 0;
 
-        // 1. FONDO: Graduación radial premium estilo estudio/show nocturno
-        const gradienteFondo = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 50, canvas.width/2, canvas.height/2, 350);
-        gradienteFondo.addColorStop(0, '#260026'); // Centro morado profundo
-        gradienteFondo.addColorStop(1, '#070708'); // Bordes negros satinados
+        // 1. FONDO: Gradiente radial profundo
+        const gradienteFondo = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 50, canvas.width/2, canvas.height/2, 300);
+        gradienteFondo.addColorStop(0, '#260026'); 
+        gradienteFondo.addColorStop(1, '#070708'); 
         ctx.fillStyle = gradienteFondo;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 2. DETALLES DE ESTRUCTURA: Líneas de corte decorativas de ticket
-        ctx.strokeStyle = 'rgba(255, 0, 255, 0.15)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.setLineDash([6, 4]); // Línea punteada lateral de "corte de boleto"
-        ctx.moveTo(400, 15);
-        ctx.lineTo(400, canvas.height - 15);
-        ctx.stroke();
-        ctx.setLineDash([]); // Restaurar línea sólida
-
-        // 3. MARCO NEÓN DUAL
+        // 2. MARCO DOBLE NEÓN
         ctx.strokeStyle = '#ff00ff';
         ctx.lineWidth = 3;
         ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
@@ -128,85 +118,67 @@
         ctx.lineWidth = 1;
         ctx.strokeRect(14, 14, canvas.width - 28, canvas.height - 28);
 
-        // 4. LOGO / TÍTULO PRINCIPAL CON EFECTO GLOW (NEÓN)
+        // 3. LOGO PRINCIPAL CON GLOW NEÓN
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 24px "Segoe UI", sans-serif';
-        ctx.textAlign = 'left';
+        ctx.textAlign = 'center'; // Centrado en la tarjeta
         ctx.shadowColor = '#ff00ff';
-        ctx.shadowBlur = 10; // Fuerza del neón
-        ctx.fillText('ORGULLOSAMENTE ICÓNICA', 35, 50);
+        ctx.shadowBlur = 10;
+        ctx.fillText('ORGULLOSAMENTE ICÓNICA', canvas.width / 2, 50);
         
-        // Subtítulo del show
-        ctx.shadowBlur = 0; // Apagar neón para textos chicos
+        // Subtítulo
+        ctx.shadowBlur = 0; 
         ctx.fillStyle = '#8a8a8a';
-        ctx.font = 'bold 11px "Segoe UI", sans-serif';
-        ctx.fillText('TEMPORADA VIRTUAL • ACCESO OFICIAL', 35, 70);
+        ctx.font = 'bold 12px "Segoe UI", sans-serif';
+        ctx.fillText('TARJETA OFICIAL DE BINGO', canvas.width / 2, 72);
 
-        // 5. SECCIÓN IZQUIERDA: CONTENIDO DE LA COMBINACIÓN
+        // 4. SUBTÍTULO DE LA COMBINACIÓN
         ctx.fillStyle = '#e0e0e0';
         ctx.font = 'bold 14px "Segoe UI", sans-serif';
-        ctx.fillText('TU COMBINACIÓN ASIGNADA:', 35, 120);
+        ctx.textAlign = 'left';
+        ctx.fillText('TU COMBINACIÓN DE REINAS:', 40, 115);
 
-        // Desplegar las reinas ordenadas
-        let yInicial = 160;
+        // 5. LISTA DE REINAS (Alineadas perfectamente a la izquierda)
+        let yInicial = 155;
         listaReinas.forEach((reina, index) => {
             if (index === 0) {
-                // REINA SELECCIONADA: Dibujar una cápsula de fondo destacada
+                // Cápsula brillante para la favorita
                 ctx.fillStyle = 'rgba(255, 0, 255, 0.25)';
-                // Rectángulo redondeado manual para la cápsula
                 ctx.beginPath();
-                ctx.roundRect(35, yInicial - 18, 330, 26, 6);
+                ctx.roundRect(40, yInicial - 18, 400, 26, 6);
                 ctx.fill();
 
-                // Borde fino a la cápsula
                 ctx.strokeStyle = '#ff00ff';
                 ctx.lineWidth = 1;
                 ctx.stroke();
 
-                // Texto de la elegida destacado en neón blanco/rosa
                 ctx.fillStyle = '#ffffff';
                 ctx.font = 'bold 14px "Segoe UI", sans-serif';
                 ctx.shadowColor = '#ff00ff';
                 ctx.shadowBlur = 8;
-                ctx.fillText('👑 ' + reina.toUpperCase() + ' (Favorita)', 45, yInicial);
-                ctx.shadowBlur = 0; // Apagar para las siguientes
+                ctx.fillText('👑 ' + reina.toUpperCase() + ' (Favorita)', 52, yInicial);
+                ctx.shadowBlur = 0; 
             } else {
-                // REINAS COMPLEMENTARIAS ELECTAS POR ALGORITMO
                 ctx.fillStyle = '#b3b3b3';
                 ctx.font = '14px "Segoe UI", sans-serif';
-                ctx.fillText('• ' + reina.toUpperCase(), 45, yInicial);
+                ctx.fillText('• ' + reina.toUpperCase(), 52, yInicial);
             }
-            yInicial += 32; // Separación ideal entre filas
+            yInicial += 30; 
         });
 
-        // 6. SECCIÓN DERECHA (STUB DEL BOLETO): DATA DE CONTROL
-        ctx.save();
-        // Rotamos el texto del Ticket ID verticalmente para que parezca un número de serie real de boleto
-        ctx.translate(515, 200);
-        ctx.rotate(-Math.PI / 2);
+        // 6. CORREGIDO: TICKET ID HORIZONTAL Y CENTRADO EN LA PARTE INFERIOR
         ctx.fillStyle = '#ff00ff';
         ctx.font = 'bold 11px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('TICKET ID: ' + ticketId.substring(0, 18).toUpperCase() + '...', 0, 0);
-        ctx.restore();
+        ctx.fillText('TICKET ID: ' + ticketId.toUpperCase(), canvas.width / 2, 335);
 
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 38px "Segoe UI", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('VIP', 455, 190);
-        
-        ctx.fillStyle = '#8a8a8a';
-        ctx.font = '9px "Segoe UI", sans-serif';
-        ctx.fillText('CONSERVA ESTE PASE', 455, 215);
-
-        // Mostrar contenedor general del canvas
         document.getElementById('boletoSection').style.display = 'block';
     }
 
     function descargarBoleto() {
         const canvas = document.getElementById('boletoCanvas');
         const enlace = document.createElement('a');
-        enlace.download = 'Pase_VIP_Iconica.png';
+        enlace.download = 'Tarjeta_Bingo_Iconica.png';
         enlace.href = canvas.toDataURL('image/png');
         enlace.click();
     }
