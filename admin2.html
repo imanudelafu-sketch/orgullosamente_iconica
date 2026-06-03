@@ -6,16 +6,15 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: #fff; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { background: #1a1a1a; padding: 20px; border-radius: 15px; width: 100%; max-width: 450px; }
+        .container { background: #1a1a1a; padding: 20px; border-radius: 15px; width: 100%; max-width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
         input, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; background: #ff00ff; border: none; color: white; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 10px; }
+        button { width: 100%; padding: 15px; background: linear-gradient(45deg, #ff00ff, #aa00aa); border: none; color: white; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 10px; transition: transform 0.2s; }
+        button:hover { transform: scale(1.02); }
         #boletoSection { margin-top: 30px; display: none; text-align: center; }
-        canvas { border: 2px solid #ff00ff; border-radius: 10px; background: #000; margin-bottom: 15px; }
+        canvas { border-radius: 12px; box-shadow: 0 0 20px rgba(255, 0, 255, 0.4); margin-bottom: 15px; }
         
         .resumen-venta { display: none; background: #222; padding: 15px; border-radius: 10px; border-left: 5px solid #ff00ff; margin-top: 20px; width: 100%; box-sizing: border-box; }
         .resumen-venta h3 { margin-top: 0; color: #ff00ff; }
-        .resumen-venta ul { padding-left: 20px; margin: 5px 0 0 0; }
-        .resumen-venta li { margin: 4px 0; color: #ccc; }
     </style>
 </head>
 <body>
@@ -31,8 +30,8 @@
 </div>
 
 <div id="boletoSection">
-    <canvas id="boletoCanvas" width="500" height="280"></canvas>
-    <button onclick="descargarBoleto()" style="background: #33cc33;">Descargar Boleto PNG</button>
+    <canvas id="boletoCanvas" width="550" height="380"></canvas>
+    <button onclick="descargarBoleto()" style="background: linear-gradient(45deg, #2eb82e, #1f7a1f); width: auto; padding: 12px 30px;">Descargar Boleto PNG</button>
 </div>
 
 <script>
@@ -79,90 +78,135 @@
         
         const { data: contendientes } = await sb.from('contendientes').select('id, nombre').in('id', boleto.combination_sorted);
         
-        // --- LÓGICA DE ORDENAMIENTO (Seleccionada al inicio, el resto aleatorio) ---
-        // 1. Quitamos a la seleccionada del grupo
+        // Separación y ordenamiento aleatorio
         let otrasReinas = contendientes.filter(c => c.id !== dragaId).map(c => c.nombre);
-        // 2. Mezclamos a las 5 restantes
         otrasReinas = otrasReinas.sort(() => Math.random() - 0.5);
-        // 3. Juntamos todo poniendo a la seleccionada en el índice 0
         const listaFinalNombres = [dragaNombreElegida, ...otrasReinas];
 
-        // Llenar el resumen HTML
-        const listaHTML = listaFinalNombres.map((nombre, index) => {
-            if(index === 0) return `<li><strong style="color:#ff00ff;">★ ${nombre}</strong> (Seleccionada)</li>`;
-            return `<li>• ${nombre}</li>`;
-        }).join('');
-
+        // Mostrar confirmación rápida en la interfaz
         const contenedorResultado = document.getElementById('resultadoVenta');
         contenedorResultado.innerHTML = `
-            <h3>¡Venta Registrada Exitosamente!</h3>
+            <h3>¡Venta Registrada!</h3>
             <p style="margin: 5px 0;"><strong>Ticket ID:</strong> ${ticket.id}</p>
-            <p style="margin: 10px 0 0 0;"><strong>Combinación de Reinas:</strong></p>
-            <ul style="list-style: none; padding-left: 0;">${listaHTML}</ul>
+            <p style="margin: 5px 0; color:#ff00ff;">Imagen de pase VIP generada abajo.</p>
         `;
         contenedorResultado.style.display = 'block';
         
-        // Disparar la generación de la imagen
+        // Renderizar el nuevo diseño premium
         dibujarBoletoImagen(listaFinalNombres, ticket.id);
     }
 
-    // --- LÓGICA DE GENERACIÓN DE IMAGEN EN CANVAS ---
     function dibujarBoletoImagen(listaReinas, ticketId) {
         const canvas = document.getElementById('boletoCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Fondo negro
-        ctx.fillStyle = '#000000';
+        // Resetear efectos por si acaso
+        ctx.shadowBlur = 0;
+
+        // 1. FONDO: Graduación radial premium estilo estudio/show nocturno
+        const gradienteFondo = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 50, canvas.width/2, canvas.height/2, 350);
+        gradienteFondo.addColorStop(0, '#260026'); // Centro morado profundo
+        gradienteFondo.addColorStop(1, '#070708'); // Bordes negros satinados
+        ctx.fillStyle = gradienteFondo;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Borde neón
+        // 2. DETALLES DE ESTRUCTURA: Líneas de corte decorativas de ticket
+        ctx.strokeStyle = 'rgba(255, 0, 255, 0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.setLineDash([6, 4]); // Línea punteada lateral de "corte de boleto"
+        ctx.moveTo(400, 15);
+        ctx.lineTo(400, canvas.height - 15);
+        ctx.stroke();
+        ctx.setLineDash([]); // Restaurar línea sólida
+
+        // 3. MARCO NEÓN DUAL
         ctx.strokeStyle = '#ff00ff';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+        ctx.lineWidth = 3;
+        ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(14, 14, canvas.width - 28, canvas.height - 28);
 
-        // Título principal
-        ctx.fillStyle = '#ff00ff';
-        ctx.font = 'bold 22px "Segoe UI", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('¡Venta Registrada Exitosamente!', canvas.width / 2, 35);
-
-        // Ticket ID
-        ctx.fillStyle = '#aaaaaa';
-        ctx.font = '14px monospace';
-        ctx.fillText('Ticket ID: ' + ticketId, canvas.width / 2, 60);
-
-        // Subtítulo
+        // 4. LOGO / TÍTULO PRINCIPAL CON EFECTO GLOW (NEÓN)
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 18px "Segoe UI", sans-serif';
+        ctx.font = 'bold 24px "Segoe UI", sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillText('Combinación de Reinas:', 30, 100);
+        ctx.shadowColor = '#ff00ff';
+        ctx.shadowBlur = 10; // Fuerza del neón
+        ctx.fillText('ORGULLOSAMENTE ICÓNICA', 35, 50);
+        
+        // Subtítulo del show
+        ctx.shadowBlur = 0; // Apagar neón para textos chicos
+        ctx.fillStyle = '#8a8a8a';
+        ctx.font = 'bold 11px "Segoe UI", sans-serif';
+        ctx.fillText('TEMPORADA VIRTUAL • ACCESO OFICIAL', 35, 70);
 
-        // Lista de Reinas
-        let y = 130;
+        // 5. SECCIÓN IZQUIERDA: CONTENIDO DE LA COMBINACIÓN
+        ctx.fillStyle = '#e0e0e0';
+        ctx.font = 'bold 14px "Segoe UI", sans-serif';
+        ctx.fillText('TU COMBINACIÓN ASIGNADA:', 35, 120);
+
+        // Desplegar las reinas ordenadas
+        let yInicial = 160;
         listaReinas.forEach((reina, index) => {
             if (index === 0) {
-                // La reina seleccionada va en rosa y con estrella
-                ctx.fillStyle = '#ff00ff';
-                ctx.font = 'bold 16px "Segoe UI", sans-serif';
-                ctx.fillText('★ ' + reina, 30, y);
-            } else {
-                // El resto de la mezcla aleatoria va en blanco
+                // REINA SELECCIONADA: Dibujar una cápsula de fondo destacada
+                ctx.fillStyle = 'rgba(255, 0, 255, 0.25)';
+                // Rectángulo redondeado manual para la cápsula
+                ctx.beginPath();
+                ctx.roundRect(35, yInicial - 18, 330, 26, 6);
+                ctx.fill();
+
+                // Borde fino a la cápsula
+                ctx.strokeStyle = '#ff00ff';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Texto de la elegida destacado en neón blanco/rosa
                 ctx.fillStyle = '#ffffff';
-                ctx.font = '16px "Segoe UI", sans-serif';
-                ctx.fillText('• ' + reina, 30, y);
+                ctx.font = 'bold 14px "Segoe UI", sans-serif';
+                ctx.shadowColor = '#ff00ff';
+                ctx.shadowBlur = 8;
+                ctx.fillText('👑 ' + reina.toUpperCase() + ' (Favorita)', 45, yInicial);
+                ctx.shadowBlur = 0; // Apagar para las siguientes
+            } else {
+                // REINAS COMPLEMENTARIAS ELECTAS POR ALGORITMO
+                ctx.fillStyle = '#b3b3b3';
+                ctx.font = '14px "Segoe UI", sans-serif';
+                ctx.fillText('• ' + reina.toUpperCase(), 45, yInicial);
             }
-            y += 24; // Espaciado entre nombres
+            yInicial += 32; // Separación ideal entre filas
         });
 
-        // Mostrar la sección del canvas y el botón de descarga
+        // 6. SECCIÓN DERECHA (STUB DEL BOLETO): DATA DE CONTROL
+        ctx.save();
+        // Rotamos el texto del Ticket ID verticalmente para que parezca un número de serie real de boleto
+        ctx.translate(515, 200);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillStyle = '#ff00ff';
+        ctx.font = 'bold 11px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('TICKET ID: ' + ticketId.substring(0, 18).toUpperCase() + '...', 0, 0);
+        ctx.restore();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 38px "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('VIP', 455, 190);
+        
+        ctx.fillStyle = '#8a8a8a';
+        ctx.font = '9px "Segoe UI", sans-serif';
+        ctx.fillText('CONSERVA ESTE PASE', 455, 215);
+
+        // Mostrar contenedor general del canvas
         document.getElementById('boletoSection').style.display = 'block';
     }
 
-    // --- FUNCIÓN PARA DESCARGAR LA IMAGEN ---
     function descargarBoleto() {
         const canvas = document.getElementById('boletoCanvas');
         const enlace = document.createElement('a');
-        enlace.download = 'Boleto_Iconico.png';
+        enlace.download = 'Pase_VIP_Iconica.png';
         enlace.href = canvas.toDataURL('image/png');
         enlace.click();
     }
