@@ -59,15 +59,43 @@
             }
         }
 
-        async function votar(id) {
+       async function votar(id) {
             try {
-                // 1. Obtener la IP pública del usuario usando un servicio seguro
-                const ipResponse = await fetch('https://api.ipify.org?format=json');
-                if (!ipResponse.ok) throw new Error("No se pudo verificar la conexión a internet.");
-                const ipData = await ipResponse.json();
-                const usuarioIp = ipData.ip;
+                let usuarioIp = "";
+                let esVPN = false;
 
-                // 2. Llamar a la nueva función de Supabase pasando el ID y la IP
+                // 1. Obtener la IP con el servicio más estable (Casi nunca es bloqueado)
+                try {
+                    const ipResponse = await fetch('https://api.ipify.org?format=json');
+                    if (!ipResponse.ok) throw new Error();
+                    const ipData = await ipResponse.json();
+                    usuarioIp = ipData.ip;
+                } catch (err) {
+                    // Si el navegador es extremadamente estricto, pedimos amablemente que bajen sus escudos
+                    throw new Error("Tu navegador está bloqueando la validación. Por favor, desactiva tu AdBlocker o navega en modo normal/público para votar.");
+                }
+
+                // 2. Intentar detectar VPN de forma silenciosa
+                try {
+                    // Consultamos la IP específica. Si el navegador bloquea esto, el código sigue vivo.
+                    const vpnResponse = await fetch(`https://proxycheck.io/v2/${usuarioIp}?vpn=1`);
+                    if (vpnResponse.ok) {
+                        const vpnData = await vpnResponse.json();
+                        if (vpnData[usuarioIp] && vpnData[usuarioIp].proxy === "yes") {
+                            esVPN = true;
+                        }
+                    }
+                } catch (err) {
+                    console.warn("Filtro VPN bloqueado por el navegador local, se usará validación pura por IP.");
+                }
+
+                // 3. Detener si es 100% seguro que es una VPN
+                if (esVPN) {
+                    alert("⚠️ Voto denegado: Hemos detectado el uso de una VPN o Proxy. Por favor, desactívala y usa tu red local para votar de forma justa.");
+                    return; 
+                }
+
+                // 4. Llamar a Supabase para registrar el voto con esa IP
                 const { data: resultado, error } = await client.rpc('realizar_voto_ip', { 
                     row_id: id, 
                     user_ip: usuarioIp 
@@ -75,17 +103,17 @@
 
                 if (error) throw error;
 
-                // 3. Evaluar la respuesta del servidor
+                // 5. Evaluar la respuesta de la base de datos
                 if (resultado === 'DUPLICADO') {
                     alert("Ya se registró una votación desde esta red el día de hoy. ¡Vuelve mañana!");
                 } else if (resultado === 'OK') {
                     alert("¡Tu voto ha sido registrado con éxito!");
-                    cargar(); // Recargar la tarjeta de puntos
+                    cargar(); // Recargar para mostrar los nuevos puntos
                 }
 
             } catch (err) {
-                console.error(err);
-                alert("Hubo un problema al procesar tu voto. Por favor, inténtalo de nuevo.");
+                console.error("Detalle del error:", err);
+                alert("Error técnico: " + err.message);
             }
         }
 
