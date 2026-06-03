@@ -10,7 +10,9 @@
         input, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; box-sizing: border-box; }
         button { width: 100%; padding: 15px; background: linear-gradient(45deg, #ff00ff, #aa00aa); border: none; color: white; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 10px; transition: transform 0.2s; }
         button:hover { transform: scale(1.02); }
-        #boletoSection { margin-top: 30px; display: none; text-align: center; }
+        
+        /* Mantenemos esta sección oculta de forma permanente */
+        #boletoSection { display: none; }
         canvas { border-radius: 12px; box-shadow: 0 0 20px rgba(255, 0, 255, 0.4); margin-bottom: 15px; }
         
         .resumen-venta { display: none; background: #222; padding: 15px; border-radius: 10px; border-left: 5px solid #ff00ff; margin-top: 20px; width: 100%; box-sizing: border-box; }
@@ -31,7 +33,6 @@
 
 <div id="boletoSection">
     <canvas id="boletoCanvas" width="480" height="370"></canvas>
-    <button onclick="descargarBoleto()" style="background: linear-gradient(45deg, #2eb82e, #1f7a1f); width: auto; padding: 12px 30px;">Descargar Tarjeta PNG</button>
 </div>
 
 <script>
@@ -46,67 +47,6 @@
             select.appendChild(opt);
         });
     }
-
-    /*async function registrarTicket() {
-        const nombre = document.getElementById('nombreCliente').value;
-        const email = document.getElementById('emailCliente').value;
-        
-        const selectDraga = document.getElementById('dragaSelect');
-        const dragaId = Number(selectDraga.value);
-        const dragaNombreElegida = selectDraga.options[selectDraga.selectedIndex].text;
-
-        if (!nombre || !email || !dragaId) return alert("Completa todos los campos.");
-
-        document.getElementById('resultadoVenta').style.display = 'none';
-
-        const { data: boletos, error: errFetch } = await sb.rpc('marcar_y_obtener_boleto', { p_draga_id: dragaId });
-
-        if (errFetch || !boletos || boletos.length === 0) {
-            return alert("¡No hay boletos disponibles para esa draga!");
-        }
-
-        const boleto = boletos[0];
-
-        const { data: ticket, error: errInsert } = await sb.from('tickets').insert([{ 
-            buyer_name: nombre, 
-            buyer_email: email,
-            combination_id: boleto.id,
-            favorite_drag_id: dragaId 
-        }]).select('id').single();
-        
-        if (errInsert) return alert("Error al registrar ticket: " + errInsert.message);
-        
-        const { data: contendientes } = await sb.from('contendientes').select('id, nombre').in('id', boleto.combination_sorted);
-        
-        let otrasReinas = contendientes.filter(c => c.id !== dragaId).map(c => c.nombre);
-        otrasReinas = otrasReinas.sort(() => Math.random() - 0.5);
-        const listaFinalNombres = [dragaNombreElegida, ...otrasReinas];
-
-        const contenedorResultado = document.getElementById('resultadoVenta');
-        contenedorResultado.innerHTML = `
-            <h3>¡Venta Registrada!</h3>
-            <p style="margin: 5px 0;"><strong>Ticket ID:</strong> ${ticket.id}</p>
-            <p style="margin: 5px 0; color:#ff00ff;">Imagen de Bingo guardada en la nube y enviándose por correo...</p>
-        `;
-        contenedorResultado.style.display = 'block';
-        
-        // 1. Renderizar la tarjeta neón en el Canvas local
-        dibujarBoletoImagen(listaFinalNombres, ticket.id);
-
-        // 2. NUEVO: Guardar la imagen automáticamente en Supabase Storage
-        const canvas = document.getElementById('boletoCanvas');
-        canvas.toBlob(async (blob) => {
-            const { error: errUpload } = await sb.storage
-                .from('boletos')
-                .upload(`${ticket.id}.png`, blob, { contentType: 'image/png', upsert: true });
-            
-            if (errUpload) {
-                console.error("Error guardando imagen en la nube:", errUpload.message);
-            } else {
-                console.log("¡Imagen respaldada exitosamente en Supabase Storage!");
-            }
-        }, 'image/png');
-    }*/
 
     async function registrarTicket() {
         const nombre = document.getElementById('nombreCliente').value;
@@ -127,19 +67,17 @@
         }
 
         const boleto = boletos[0];
-
-        // 1. Generamos el ID del ticket por adelantado
         const ticketId = crypto.randomUUID();
 
-        // 2. Mezclamos a las reinas y dibujamos el Canvas
         const { data: contendientes } = await sb.from('contendientes').select('id, nombre').in('id', boleto.combination_sorted);
         let otrasReinas = contendientes.filter(c => c.id !== dragaId).map(c => c.nombre);
         otrasReinas = otrasReinas.sort(() => Math.random() - 0.5);
         const listaFinalNombres = [dragaNombreElegida, ...otrasReinas];
 
-        //dibujarBoletoImagen(listaFinalNombres, ticketId);
+        // 1. Dibuja en el Canvas invisible
+        dibujarBoletoImagen(listaFinalNombres, ticketId);
 
-        // 3. Subimos la imagen PRIMERO para asegurar que el correo la encuentre
+        // 2. Sube la imagen a Supabase
         const canvas = document.getElementById('boletoCanvas');
         canvas.toBlob(async (blob) => {
             const { error: errUpload } = await sb.storage
@@ -148,12 +86,12 @@
             
             if (errUpload) {
                 console.error("Error subiendo:", errUpload);
-                return alert("Hubo un error subiendo la imagen a la nube. Revisa los permisos de Storage.");
+                return alert("Hubo un error subiendo la imagen a la nube.");
             }
 
-            // 4. Una vez que la imagen está online, guardamos la venta (Esto dispara el correo instantáneamente)
+            // 3. Registra en Base de Datos (Activa el Email)
             const { error: errInsert } = await sb.from('tickets').insert([{ 
-                id: ticketId, // Forzamos el ID que generamos
+                id: ticketId,
                 buyer_name: nombre, 
                 buyer_email: email,
                 combination_id: boleto.id,
@@ -162,7 +100,7 @@
             
             if (errInsert) return alert("Error al registrar ticket: " + errInsert.message);
 
-            // Mensaje de éxito final
+            // 4. Muestra SÓLO la tarjeta de éxito
             const contenedorResultado = document.getElementById('resultadoVenta');
             contenedorResultado.innerHTML = `
                 <h3>¡Venta Registrada Exitosamente!</h3>
@@ -170,6 +108,10 @@
                 <p style="margin: 5px 0; color:#ff00ff;">Imagen de Bingo guardada en la nube y correo enviado a ${email}.</p>
             `;
             contenedorResultado.style.display = 'block';
+
+            // Opcional: Limpiar el formulario para la siguiente venta
+            document.getElementById('nombreCliente').value = '';
+            document.getElementById('emailCliente').value = '';
 
         }, 'image/png');
     }
@@ -246,15 +188,8 @@
         ctx.textAlign = 'center';
         ctx.fillText('TICKET ID: ' + ticketId.toUpperCase(), canvas.width / 2, 348);
 
-        document.getElementById('boletoSection').style.display = 'block';
-    }
-
-    function descargarBoleto() {
-        const canvas = document.getElementById('boletoCanvas');
-        const enlace = document.createElement('a');
-        enlace.download = 'Tarjeta_Bingo_Iconica.png';
-        enlace.href = canvas.toDataURL('image/png');
-        enlace.click();
+        // ¡Esta es la línea que eliminamos!
+        // document.getElementById('boletoSection').style.display = 'block';
     }
 
     cargarContendientes();
