@@ -47,7 +47,7 @@
         });
     }
 
-    async function registrarTicket() {
+    /*async function registrarTicket() {
         const nombre = document.getElementById('nombreCliente').value;
         const email = document.getElementById('emailCliente').value;
         
@@ -105,6 +105,72 @@
             } else {
                 console.log("¡Imagen respaldada exitosamente en Supabase Storage!");
             }
+        }, 'image/png');
+    }*/
+
+    async function registrarTicket() {
+        const nombre = document.getElementById('nombreCliente').value;
+        const email = document.getElementById('emailCliente').value;
+        
+        const selectDraga = document.getElementById('dragaSelect');
+        const dragaId = Number(selectDraga.value);
+        const dragaNombreElegida = selectDraga.options[selectDraga.selectedIndex].text;
+
+        if (!nombre || !email || !dragaId) return alert("Completa todos los campos.");
+
+        document.getElementById('resultadoVenta').style.display = 'none';
+
+        const { data: boletos, error: errFetch } = await sb.rpc('marcar_y_obtener_boleto', { p_draga_id: dragaId });
+
+        if (errFetch || !boletos || boletos.length === 0) {
+            return alert("¡No hay boletos disponibles para esa draga!");
+        }
+
+        const boleto = boletos[0];
+
+        // 1. Generamos el ID del ticket por adelantado
+        const ticketId = crypto.randomUUID();
+
+        // 2. Mezclamos a las reinas y dibujamos el Canvas
+        const { data: contendientes } = await sb.from('contendientes').select('id, nombre').in('id', boleto.combination_sorted);
+        let otrasReinas = contendientes.filter(c => c.id !== dragaId).map(c => c.nombre);
+        otrasReinas = otrasReinas.sort(() => Math.random() - 0.5);
+        const listaFinalNombres = [dragaNombreElegida, ...otrasReinas];
+
+        dibujarBoletoImagen(listaFinalNombres, ticketId);
+
+        // 3. Subimos la imagen PRIMERO para asegurar que el correo la encuentre
+        const canvas = document.getElementById('boletoCanvas');
+        canvas.toBlob(async (blob) => {
+            const { error: errUpload } = await sb.storage
+                .from('boletos')
+                .upload(`${ticketId}.png`, blob, { contentType: 'image/png', upsert: true });
+            
+            if (errUpload) {
+                console.error("Error subiendo:", errUpload);
+                return alert("Hubo un error subiendo la imagen a la nube. Revisa los permisos de Storage.");
+            }
+
+            // 4. Una vez que la imagen está online, guardamos la venta (Esto dispara el correo instantáneamente)
+            const { error: errInsert } = await sb.from('tickets').insert([{ 
+                id: ticketId, // Forzamos el ID que generamos
+                buyer_name: nombre, 
+                buyer_email: email,
+                combination_id: boleto.id,
+                favorite_drag_id: dragaId 
+            }]);
+            
+            if (errInsert) return alert("Error al registrar ticket: " + errInsert.message);
+
+            // Mensaje de éxito final
+            const contenedorResultado = document.getElementById('resultadoVenta');
+            contenedorResultado.innerHTML = `
+                <h3>¡Venta Registrada Exitosamente!</h3>
+                <p style="margin: 5px 0;"><strong>Ticket ID:</strong> ${ticketId}</p>
+                <p style="margin: 5px 0; color:#ff00ff;">Imagen de Bingo guardada en la nube y correo enviado a ${email}.</p>
+            `;
+            contenedorResultado.style.display = 'block';
+
         }, 'image/png');
     }
 
