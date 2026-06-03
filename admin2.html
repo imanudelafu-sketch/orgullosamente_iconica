@@ -30,7 +30,7 @@
 </div>
 
 <div id="boletoSection">
-    <canvas id="boletoCanvas" width="480" height="360"></canvas>
+    <canvas id="boletoCanvas" width="480" height="370"></canvas>
     <button onclick="descargarBoleto()" style="background: linear-gradient(45deg, #2eb82e, #1f7a1f); width: auto; padding: 12px 30px;">Descargar Tarjeta PNG</button>
 </div>
 
@@ -83,7 +83,7 @@
         otrasReinas = otrasReinas.sort(() => Math.random() - 0.5);
         const listaFinalNombres = [dragaNombreElegida, ...otrasReinas];
 
-        // CORREGIDO: Mensaje en interfaz modificado según la instrucción
+        // Mensaje ajustado a Bingo
         const contenedorResultado = document.getElementById('resultadoVenta');
         contenedorResultado.innerHTML = `
             <h3>¡Venta Registrada!</h3>
@@ -92,7 +92,7 @@
         `;
         contenedorResultado.style.display = 'block';
         
-        // Renderizar la tarjeta con los nuevos cambios estéticos
+        // Renderizar la tarjeta
         dibujarBoletoImagen(listaFinalNombres, ticket.id);
     }
 
@@ -100,10 +100,9 @@
         const canvas = document.getElementById('boletoCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Limpiar efectos previos
         ctx.shadowBlur = 0;
 
-        // 1. FONDO: Gradiente radial profundo
+        // 1. FONDO
         const gradienteFondo = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 50, canvas.width/2, canvas.height/2, 300);
         gradienteFondo.addColorStop(0, '#260026'); 
         gradienteFondo.addColorStop(1, '#070708'); 
@@ -121,7 +120,7 @@
         // 3. LOGO PRINCIPAL CON GLOW NEÓN
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 24px "Segoe UI", sans-serif';
-        ctx.textAlign = 'center'; // Centrado en la tarjeta
+        ctx.textAlign = 'center'; 
         ctx.shadowColor = '#ff00ff';
         ctx.shadowBlur = 10;
         ctx.fillText('ORGULLOSAMENTE ICÓNICA', canvas.width / 2, 50);
@@ -138,7 +137,7 @@
         ctx.textAlign = 'left';
         ctx.fillText('TU COMBINACIÓN DE REINAS:', 40, 115);
 
-        // 5. LISTA DE REINAS (Alineadas perfectamente a la izquierda)
+        // 5. LISTA DE REINAS
         let yInicial = 155;
         listaReinas.forEach((reina, index) => {
             if (index === 0) {
@@ -166,11 +165,20 @@
             yInicial += 30; 
         });
 
-        // 6. CORREGIDO: TICKET ID HORIZONTAL Y CENTRADO EN LA PARTE INFERIOR
+        // 6. SECCIÓN INFERIOR: TICKET ID HORIZONTAL
+        // Agregamos una sutil línea separadora arriba del ID
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(40, 325);
+        ctx.lineTo(canvas.width - 40, 325);
+        ctx.stroke();
+
         ctx.fillStyle = '#ff00ff';
-        ctx.font = 'bold 11px monospace';
+        ctx.font = 'bold 12px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('TICKET ID: ' + ticketId.toUpperCase(), canvas.width / 2, 335);
+        // Colocamos el ID completamente centrado y horizontal
+        ctx.fillText('TICKET ID: ' + ticketId.toUpperCase(), canvas.width / 2, 348);
 
         document.getElementById('boletoSection').style.display = 'block';
     }
