@@ -59,7 +59,7 @@
             }
         }
 
-        async function votar(id) {
+        /*async function votar(id) {
             try {
                 // 1. Obtener la IP pública del usuario usando un servicio seguro
                 const ipResponse = await fetch('https://api.ipify.org?format=json');
@@ -76,6 +76,45 @@
                 if (error) throw error;
 
                 // 3. Evaluar la respuesta del servidor
+                if (resultado === 'DUPLICADO') {
+                    alert("Ya se registró una votación desde esta red el día de hoy. ¡Vuelve mañana!");
+                } else if (resultado === 'OK') {
+                    alert("¡Tu voto ha sido registrado con éxito!");
+                    cargar(); // Recargar la tarjeta de puntos
+                }
+
+            } catch (err) {
+                console.error(err);
+                alert("Hubo un problema al procesar tu voto. Por favor, inténtalo de nuevo.");
+            }
+        }*/
+
+        async function votar(id) {
+            try {
+                // 1. Obtener la IP y analizar si es una VPN/Proxy
+                const ipResponse = await fetch('https://proxycheck.io/v2/?vpn=1');
+                if (!ipResponse.ok) throw new Error("No se pudo verificar la conexión a internet.");
+                const ipData = await ipResponse.json();
+
+                // Proxycheck devuelve un JSON donde la llave principal es la IP del usuario
+                const usuarioIp = Object.keys(ipData).find(key => key !== "status");
+                const detallesRed = ipData[usuarioIp];
+
+                // 2. LA MAGIA: Bloquear si detectamos VPN
+                if (detallesRed && detallesRed.proxy === "yes") {
+                    alert("⚠️ Voto denegado: Hemos detectado el uso de una VPN o Proxy. Por favor, desactívala y usa tu red wifi o datos móviles para apoyar a tu favorita.");
+                    return; // Detiene el código aquí, el voto no llega a Supabase
+                }
+
+                // 3. Llamar a la función de Supabase pasando el ID y la IP limpia
+                const { data: resultado, error } = await client.rpc('realizar_voto_ip', { 
+                    row_id: id, 
+                    user_ip: usuarioIp 
+                });
+
+                if (error) throw error;
+
+                // 4. Evaluar la respuesta del servidor
                 if (resultado === 'DUPLICADO') {
                     alert("Ya se registró una votación desde esta red el día de hoy. ¡Vuelve mañana!");
                 } else if (resultado === 'OK') {
