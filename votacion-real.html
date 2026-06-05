@@ -52,21 +52,42 @@
             }
             return deviceId;
         }
-
-        async function cargar() {
-            const { data } = await client.from('contendientes').select('*').eq('active', true).order('id');
-            const grid = document.getElementById('grid-votos');
-            grid.innerHTML = data.map(p => `
-                <div class="metal-card">
-                    <img src="${p.foto_url}" class="w-full h-48 object-cover">
-                    <div class="p-4 text-center">
-                        <h3 class="font-bold text-xs uppercase mb-3 text-white">${p.nombre}</h3>
-                        <button class="btn-rose-gold" onclick="votar(${p.id})">VOTAR</button>
-                        <p class="text-[9px] mt-2 text-pink-200/40 font-bold">PUNTOS: ${p.votos_totales || 0}</p>
-                    </div>
-                </div>
-            `).join('');
+async function cargar() {
+    try {
+        // Probemos una consulta simple primero
+        const { data, error } = await client
+            .from('contendientes')
+            .select('*')
+            // .eq('active', true) // COMENTADO para probar si esto causa el error
+            .order('id', { ascending: true });
+            
+        if (error) {
+            console.error("Error de Supabase:", error);
+            throw new Error(error.message);
         }
+
+        if (!data || data.length === 0) {
+            document.getElementById('status').innerText = "La tabla está vacía.";
+            return;
+        }
+
+        document.getElementById('status').style.display = 'none';
+        const grid = document.getElementById('grid-votos');
+        grid.innerHTML = data.map(p => `
+            <div class="metal-card">
+                <img src="${p.foto_url}" class="w-full h-48 object-cover">
+                <div class="p-4 text-center">
+                    <h3 class="font-bold text-xs uppercase mb-3 text-white">${p.nombre}</h3>
+                    <button class="btn-rose-gold" onclick="votar(${p.id})">VOTAR</button>
+                    <p class="text-[9px] mt-2 text-pink-200/40 font-bold">PUNTOS: ${p.votos_totales || 0}</p>
+                </div>
+            </div>
+        `).join('');
+    } catch (err) {
+        document.getElementById('status').innerText = "Error: " + err.message;
+        console.error(err);
+    }
+}
 
         async function votar(id) {
             const deviceId = getDeviceId(); // Identificamos al dispositivo, no a la red
