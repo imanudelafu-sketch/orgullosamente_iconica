@@ -63,9 +63,9 @@
 function getDeviceId() {
     let deviceId = localStorage.getItem('voto_device_id');
     if (!deviceId) {
-        // Genera un ID aleatorio si no existe
         deviceId = 'dev_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
         localStorage.setItem('voto_device_id', deviceId);
+        console.log("Nuevo ID generado:", deviceId); // Ábrelo en la consola (F12) para ver si cambia
     }
     return deviceId;
 }
