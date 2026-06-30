@@ -3,157 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORGULLOSAMENTE ICÓNICA</title>
+    <title>TOP 5 - ORGULLOSAMENTE ICÓNICA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --rose-gold: linear-gradient(135deg, #e5b2ca 0%, #d491af 50%, #b36d8e 100%); }
         body { background: radial-gradient(circle at center, #3c096c 0%, #1a0b2e 100%); color: white; min-height: 100vh; padding: 20px; font-family: sans-serif; }
-        .metal-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(229, 178, 202, 0.2); backdrop-filter: blur(10px); border-radius: 1rem; overflow: hidden; transition: 0.4s; }
-        .btn-rose-gold { background: var(--rose-gold); color: #3e1026; font-weight: 900; width: 100%; padding: 12px; border-radius: 99px; text-transform: uppercase; font-size: 11px; cursor: pointer; border: none; }
+        .metal-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(229, 178, 202, 0.2); backdrop-filter: blur(10px); border-radius: 1rem; overflow: hidden; }
     </style>
 </head>
 <body>
     <header class="text-center my-12 flex flex-col items-center">
         <h1 class="text-3xl md:text-5xl font-black italic uppercase mt-4 px-2 text-center" style="color: #e5b2ca; text-shadow: 3px 3px 0px #7b2cbf;">
-            ORGULLOSAMENTE ICÓNICA
+            TOP 5 ICÓNICAS
         </h1>
-        <p class="text-pink-200/40 tracking-[6px] text-[10px] uppercase mt-2">EDICIÓN ICÓNICA</p>
     </header>
 
-    <div id="status" class="text-center text-pink-200/50 italic text-sm mb-10">Conectando con la base de datos...</div>
+    <div id="status" class="text-center text-pink-200/50 italic text-sm mb-10">Cargando ranking...</div>
 
-    <div id="grid-votos" class="grid grid-cols-2 md:grid-cols-6 gap-6 max-w-7xl mx-auto"></div>
+    <div id="grid-votos" class="grid grid-cols-2 md:grid-cols-5 gap-6 max-w-6xl mx-auto"></div>
 
     <script>
-        // CREDENCIALES
         const SB_URL = 'https://ctptnedwysxmlpzxujel.supabase.co';
         const SB_KEY = 'sb_publishable_R6IwBFND1vd9wD-9MoID0g_AcuYWoOB';
         const client = supabase.createClient(SB_URL, SB_KEY);
 
-        async function cargar() {
+        async function cargarRanking() {
             try {
-                const { data, error } = await client.from('contendientes').select('*').eq('active', true).order('id');
+                // Ordenamos por votos_totales descendente y limitamos a 5
+                const { data, error } = await client
+                    .from('contendientes')
+                    .select('*')
+                    .eq('active', true)
+                    .order('votos_totales', { ascending: false })
+                    .limit(5);
                 
                 if (error) throw error;
-                if (!data || data.length === 0) {
-                    document.getElementById('status').innerText = "La tabla está vacía. Verifica tus datos en Supabase.";
-                    return;
-                }
 
                 document.getElementById('status').style.display = 'none';
                 const grid = document.getElementById('grid-votos');
-                grid.innerHTML = data.map(p => `
-                    <div class="metal-card">
-                        <img src="${p.foto_url}" class="w-full h-48 object-cover">
-                        <div class="p-4 text-center">
-                            <h3 class="font-bold text-xs uppercase mb-3 text-white">${p.nombre}</h3>
-                            <button class="btn-rose-gold" onclick="votar(${p.id})">VOTAR</button>
-                            <p class="text-[9px] mt-2 text-pink-200/40 font-bold">PUNTOS: ${p.votos_totales || 0}</p>
-                        </div>
+                
+                grid.innerHTML = data.map((p, index) => `
+                    <div class="metal-card p-4 text-center">
+                        <div class="text-2xl font-black text-pink-300 mb-2">#${index + 1}</div>
+                        <img src="${p.foto_url}" class="w-full h-48 object-cover rounded-lg mb-4">
+                        <h3 class="font-bold text-sm uppercase text-white">${p.nombre}</h3>
+                        <p class="text-xs mt-2 text-pink-200/60 font-bold">PUNTOS: ${p.votos_totales || 0}</p>
                     </div>
                 `).join('');
             } catch (err) {
-                document.getElementById('status').innerText = "Error de conexión: Verifica tus llaves y la tabla en Supabase.";
+                document.getElementById('status').innerText = "Error al cargar el ranking.";
                 console.error(err);
             }
         }
 
-        // Función para obtener o crear un ID de dispositivo único
-function getDeviceId() {
-    let deviceId = localStorage.getItem('voto_device_id');
-    if (!deviceId) {
-        deviceId = 'dev_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
-        localStorage.setItem('voto_device_id', deviceId);
-        console.log("Nuevo ID generado:", deviceId); // Ábrelo en la consola (F12) para ver si cambia
-    }
-    return deviceId;
-}
-        async function votar(id) {
-    try {
-        const deviceId = getDeviceId();
-
-        // Llamar a Supabase usando el deviceId en lugar de la IP
-        const { data: resultado, error } = await client.rpc('realizar_voto_dispositivo', { 
-            row_id: id, 
-            p_device_id: deviceId // Cambiamos el parámetro
-        });
-
-        if (error) throw error;
-
-        if (resultado === 'DUPLICADO') {
-            alert("Ya has votado desde este dispositivo. ¡Gracias por participar!");
-        } else if (resultado === 'OK') {
-            alert("¡Tu voto ha sido registrado con éxito!");
-            cargar();
-        }
-    } catch (err) {
-        console.error("Error al votar:", err);
-        alert("Error técnico: " + err.message);
-    }
-}
-        
-       /*async function votar(id) {
-            try {
-                let usuarioIp = "";
-                let esVPN = false;
-
-                // 1. Obtener la IP con el servicio más estable (Casi nunca es bloqueado)
-                try {
-                    const ipResponse = await fetch('https://api.ipify.org?format=json');
-                    if (!ipResponse.ok) throw new Error();
-                    const ipData = await ipResponse.json();
-                    usuarioIp = ipData.ip;
-                } catch (err) {
-                    // Si el navegador es extremadamente estricto, pedimos amablemente que bajen sus escudos
-                    throw new Error("Tu navegador está bloqueando la validación. Por favor, desactiva tu AdBlocker o navega en modo normal/público para votar.");
-                }
-
-                // 2. Intentar detectar VPN de forma silenciosa
-                try {
-                    // Consultamos la IP específica. Si el navegador bloquea esto, el código sigue vivo.
-                    const vpnResponse = await fetch(`https://proxycheck.io/v2/${usuarioIp}?vpn=1`);
-                    if (vpnResponse.ok) {
-                        const vpnData = await vpnResponse.json();
-                        if (vpnData[usuarioIp] && vpnData[usuarioIp].proxy === "yes") {
-                            esVPN = true;
-                        }
-                    }
-                } catch (err) {
-                    console.warn("Filtro VPN bloqueado por el navegador local, se usará validación pura por IP.");
-                }
-
-                // 3. Detener si es 100% seguro que es una VPN
-                if (esVPN) {
-                    alert("⚠️ Voto denegado: Hemos detectado el uso de una VPN o Proxy. Por favor, desactívala y usa tu red local para votar de forma justa.");
-                    return; 
-                }
-
-                // 4. Llamar a Supabase para registrar el voto con esa IP
-                const { data: resultado, error } = await client.rpc('realizar_voto_ip', { 
-                    row_id: id, 
-                    user_ip: usuarioIp 
-                });
-
-                if (error) throw error;
-
-                // 5. Evaluar la respuesta de la base de datos
-                if (resultado === 'DUPLICADO') {
-                    alert("Ya se registró una votación desde esta red el día de hoy. ¡Vuelve mañana!");
-                } else if (resultado === 'OK') {
-
-                   alert("¡Tu voto ha sido registrado con éxito!");
-                    cargar(); // Recargar para mostrar los nuevos puntos
-                }
-
-            } catch (err) {
-                console.error("Detalle del error:", err);
-                alert("Error técnico: " + err.message);
-            }
-        }*/
-
-        cargar();
+        cargarRanking();
     </script>
 </body>
-</html> 
-
+</html>
