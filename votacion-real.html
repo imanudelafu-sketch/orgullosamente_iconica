@@ -10,6 +10,7 @@
         :root { --rose-gold: linear-gradient(135deg, #e5b2ca 0%, #d491af 50%, #b36d8e 100%); }
         body { background: radial-gradient(circle at center, #3c096c 0%, #1a0b2e 100%); color: white; min-height: 100vh; padding: 20px; font-family: sans-serif; }
         .metal-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(229, 178, 202, 0.2); backdrop-filter: blur(10px); border-radius: 1rem; overflow: hidden; }
+        .footer-banner { background: rgba(0, 0, 0, 0.3); border-top: 2px solid #d491af; padding: 2rem; margin-top: 4rem; text-align: center; }
     </style>
 </head>
 <body>
@@ -23,6 +24,18 @@
 
     <div id="grid-votos" class="grid grid-cols-2 md:grid-cols-5 gap-6 max-w-6xl mx-auto"></div>
 
+    <!-- Sección de la Final -->
+    <section class="footer-banner max-w-4xl mx-auto rounded-xl">
+        <h2 class="text-xl md:text-2xl font-bold text-pink-200 mb-4 uppercase tracking-widest">¡No te pierdas la Gran Final!</h2>
+        <p class="text-md text-gray-300 mb-6">
+            Acompáñanos en <strong>Orgullosamente Icónica</strong> el próximo <strong>domingo 5 de julio a las 9 pm</strong>.
+        </p>
+        <a href="https://www.youtube.com/@ICONICA" target="_blank" 
+           class="inline-block bg-white text-purple-900 font-black py-3 px-8 rounded-full hover:scale-105 transition-transform uppercase tracking-tighter">
+            Sintoniza nuestro canal de YouTube
+        </a>
+    </section>
+
     <script>
         const SB_URL = 'https://ctptnedwysxmlpzxujel.supabase.co';
         const SB_KEY = 'sb_publishable_R6IwBFND1vd9wD-9MoID0g_AcuYWoOB';
@@ -30,7 +43,6 @@
 
         async function cargarRanking() {
             try {
-                // Ordenamos por votos_totales descendente y limitamos a 5
                 const { data, error } = await client
                     .from('contendientes')
                     .select('*')
