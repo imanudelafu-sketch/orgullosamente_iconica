@@ -7,9 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --rose-gold: linear-gradient(135deg, #e5b2ca 0%, #d491af 50%, #b36d8e 100%); }
         body { background: radial-gradient(circle at center, #3c096c 0%, #1a0b2e 100%); color: white; min-height: 100vh; padding: 20px; font-family: sans-serif; }
-        .metal-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(229, 178, 202, 0.2); backdrop-filter: blur(10px); border-radius: 1rem; overflow: hidden; }
+        .metal-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(229, 178, 202, 0.2); backdrop-filter: blur(10px); border-radius: 1rem; padding: 20px; text-align: center; }
         .footer-banner { background: rgba(0, 0, 0, 0.3); border-top: 2px solid #d491af; padding: 2rem; margin-top: 4rem; text-align: center; }
     </style>
 </head>
@@ -22,9 +21,8 @@
 
     <div id="status" class="text-center text-pink-200/50 italic text-sm mb-10">Cargando ranking...</div>
 
-    <div id="grid-votos" class="grid grid-cols-2 md:grid-cols-5 gap-6 max-w-6xl mx-auto"></div>
+    <div id="grid-votos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto"></div>
 
-    <!-- Sección de la Final -->
     <section class="footer-banner max-w-4xl mx-auto rounded-xl">
         <h2 class="text-xl md:text-2xl font-bold text-pink-200 mb-4 uppercase tracking-widest">¡No te pierdas la Gran Final!</h2>
         <p class="text-md text-gray-300 mb-6">
@@ -56,16 +54,14 @@
                 const grid = document.getElementById('grid-votos');
                 
                 grid.innerHTML = data.map((p, index) => `
-                    <div class="metal-card p-4 text-center">
-                        <div class="text-2xl font-black text-pink-300 mb-2">#${index + 1}</div>
-                        <img src="${p.foto_url}" class="w-full h-48 object-cover rounded-lg mb-4">
-                        <h3 class="font-bold text-sm uppercase text-white">${p.nombre}</h3>
-                        <p class="text-xs mt-2 text-pink-200/60 font-bold">PUNTOS: ${p.votos_totales || 0}</p>
+                    <div class="metal-card">
+                        <div class="text-xl font-bold text-pink-300 mb-1">#${index + 1}</div>
+                        <h3 class="font-black text-xl uppercase tracking-wider text-white">${p.nombre}</h3>
+                        <p class="text-[10px] mt-2 text-pink-200/60 font-bold uppercase tracking-widest">${p.votos_totales || 0} PUNTOS</p>
                     </div>
                 `).join('');
             } catch (err) {
                 document.getElementById('status').innerText = "Error al cargar el ranking.";
-                console.error(err);
             }
         }
 
